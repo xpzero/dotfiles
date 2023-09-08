@@ -6,7 +6,7 @@ if [[ -e $shPath && -x $shPath ]]; then
 	chmod +x "$shPath"
 else
 	# if want to catch exception and output yours info, using echo command in else.
-	echo "$shPath is not exists."
+	echo "$shPath is not exists or no permission."
 	exit 1
 fi
 
