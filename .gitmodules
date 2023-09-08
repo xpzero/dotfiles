@@ -1,0 +1,6 @@
+[submodule "dot/oh-my-zsh"]
+	path = dot/oh-my-zsh
+	url = https://github.com/ohmyzsh/ohmyzsh.git
+[submodule "dot/config/alacritty/themes"]
+	path = dot/config/alacritty/themes
+	url = https://github.com/alacritty/alacritty-theme.git
