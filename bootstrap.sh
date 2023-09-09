@@ -103,8 +103,12 @@ initialize_repo() {
 		git remote add origin $REPO_URL
 		echo "-----------------------------------start clone repo-------------------------------"
 		git clone $REPO_URL --recurse-submodules
-		echo "-----------------------------------end clone repo---------------------------------"
-		cd "dotfiles"
+		if [ "$?" -eq 0 ]; then
+			echo "-----------------------------------end clone repo---------------------------------"
+		else
+			echo "repo clone failed. please retry."
+			exit 1
+		fi
 	fi
 }
 
