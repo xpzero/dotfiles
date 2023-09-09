@@ -4,3 +4,15 @@
 [submodule "dot/config/alacritty/themes"]
 	path = dot/config/alacritty/themes
 	url = https://github.com/alacritty/alacritty-theme.git
+[submodule "zsh/themes"]
+	path = zsh/themes
+	url = https://github.com/romkatv/powerlevel10k.git
+[submodule "zsh/plugins"]
+	path = zsh/plugins
+	url = https://github.com/zsh-users/zsh-autosuggestions.git
+[submodule "zsh/plugins/zsh-autosuggestions"]
+	path = zsh/plugins/zsh-autosuggestions
+	url = https://github.com/zsh-users/zsh-autosuggestions.git
+[submodule "zsh/themes/powerlevel10k"]
+	path = zsh/themes/powerlevel10k
+	url = https://github.com/romkatv/powerlevel10k.git
