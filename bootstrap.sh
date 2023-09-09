@@ -85,5 +85,30 @@ create_symlink_for_ohmyzsh() {
 	done
 }
 
-create_symlink_for_ohmyzsh
-install_dotfiles
+is_git_repo() {
+	git rev-parse &>/dev/null
+}
+
+get_origin_repo_url() {
+	git remote -v
+}
+
+initialize_repo() {
+	local REPO_URL="git@github.com:xpzero/dotfiles.git"
+
+	if [[ ! is_git_repo || $(git config --get remote.origin.url) != "$REPO_URL" ]]; then
+
+		echo "Initialize the Git repo."
+		git init
+		git remote add origin $REPO_URL
+		echo "-----------------------------------start clone repo-------------------------------"
+		git clone $REPO_URL --recurse-submodules
+		echo "-----------------------------------end clone repo---------------------------------"
+	fi
+	echo "end-------"
+}
+
+# is_git_repo
+initialize_repo
+# install_dotfiles
+# create_symlink_for_ohmyzsh
