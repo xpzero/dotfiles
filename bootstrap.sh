@@ -105,6 +105,7 @@ initialize_repo() {
 		git clone $REPO_URL --recurse-submodules
 		if [ "$?" -eq 0 ]; then
 			echo "-----------------------------------end clone repo---------------------------------"
+			cd "dotfiles"
 		else
 			echo "repo clone failed. please retry."
 			exit 1
