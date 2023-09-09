@@ -1,25 +1,89 @@
 #!/bin/bash
 # The difference in sh & bash is whether to continue execute script or not when program had errors.
 
-shPath="$(pwd)/$(basename $0)"
-if [[ -e $shPath && -x $shPath ]]; then
-	chmod +x "$shPath"
-else
-	# if want to catch exception and output yours info, using echo command in else.
-	echo "$shPath is not exists or no permission."
-	exit 1
-fi
+declare -a FILES_TO_SYMLINK=(
+	"dot"
+)
 
-# read filename in dot/.
-dotPath="$(pwd)/dot"
-dotFiles=$(ls $dotPath)
+ask_for_confirmation() {
+	# %b enable escape.
+	printf "%b" "$1 (y/n [n])"
+	# disable escape & read one character.
+	read -r -n 1
+	printf "\n"
+}
 
-echo "------------------------------------Install dotfiles-----------------------------------"
-for filename in $dotFiles; do
-	sourceFile="$dotPath/$filename"
-	targetFile="$HOME/.$filename"
-	ln -sf $sourceFile $targetFile
-	echo "$HOME/.$filename symlink is installed."
-done
+answer_is_yes() {
+	# $REPLY is default variable which save result of read command.
+	[[ "$REPLY" =~ ^[Yy]$ ]] &&
+		return 0 ||
+		return 1
+}
 
-echo "---------------------------------dotfiles is installed!--------------------------------"
+backup_target_file() {
+	local suffix=".bak"
+	local sourceFile=$1
+	local targetFile="$2$suffix"
+	# rename target file with .bak suffix when target file is not symlink.
+	# `ln -fs` command will rm previous symlink
+	if [ -L $sourceFile ]; then
+		if [ -e $targetFile ]; then
+			ask_for_confirmation "$targetFile already exists, do you want to overwrite it?"
+			if answer_is_yes; then
+				# rm previous .bak file
+				rm -rf $targetFile
+			fi
+		fi
+		cp -r $sourceFile $targetFile
+	fi
+}
+
+create_symlink() {
+	# the code below will rm previous symlink.
+	ln -sf $1 $2
+	echo "$2 symlink is installed."
+}
+
+install_dotfiles() {
+	echo "------------------------------------Install dotfiles-----------------------------------"
+	local sourceFile=""
+	local targetFile=""
+	local path=""
+	for directory in "${FILES_TO_SYMLINK[@]}"; do
+		path="$(pwd)/$directory"
+
+		for filename in $(ls $directory); do
+
+			sourceFile="$path/$filename"
+			targetFile="$HOME/.$filename"
+
+			# backup target file.
+			backup_target_file $sourceFile $targetFile
+
+			# create symlink.
+			create_symlink $sourceFile $targetFile
+
+		done
+	done
+	echo "---------------------------------dotfiles is installed!--------------------------------"
+}
+
+create_symlink_for_ohmyzsh() {
+	local basepath="$(pwd)/zsh"
+	local targetpath="$(pwd)/dot/oh-my-zsh"
+	for directory in $(ls $basepath); do
+		local dPath="$basepath/$directory"
+		for filename in $(ls $dPath); do
+
+			local sourceFile="$dPath/$filename"
+			local targetFile="$targetpath/$directory/$filename"
+
+			echo "sourceFile: $sourceFile"
+			echo "targetFile: $targetFile"
+			ln -fs $sourceFile $targetFile
+		done
+	done
+}
+
+create_symlink_for_ohmyzsh
+install_dotfiles
