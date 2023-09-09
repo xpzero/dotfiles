@@ -94,7 +94,7 @@ get_origin_repo_url() {
 }
 
 initialize_repo() {
-	local REPO_URL="git@github.com:xpzero/dotfiles.git"
+	local REPO_URL="https://github.com/xpzero/dotfiles.git"
 
 	if [[ ! is_git_repo || $(git config --get remote.origin.url) != "$REPO_URL" ]]; then
 
@@ -104,11 +104,10 @@ initialize_repo() {
 		echo "-----------------------------------start clone repo-------------------------------"
 		git clone $REPO_URL --recurse-submodules
 		echo "-----------------------------------end clone repo---------------------------------"
+		cd "dotfiles"
 	fi
-	echo "end-------"
 }
 
-# is_git_repo
 initialize_repo
-# install_dotfiles
-# create_symlink_for_ohmyzsh
+install_dotfiles
+create_symlink_for_ohmyzsh
