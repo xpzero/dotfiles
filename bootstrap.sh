@@ -113,8 +113,5 @@ initialize_repo() {
 	fi
 }
 
-initialize_repo
-if [ "$?" -eq 0 ]; then
-	install_dotfiles
-	create_symlink_for_ohmyzsh
-fi
+install_dotfiles
+create_symlink_for_ohmyzsh
