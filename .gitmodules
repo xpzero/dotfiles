@@ -16,3 +16,6 @@
 [submodule "zsh/themes/powerlevel10k"]
 	path = zsh/themes/powerlevel10k
 	url = https://github.com/romkatv/powerlevel10k.git
+[submodule "dot/config/tmux/dot/config/tmux/plugins"]
+	path = dot/config/tmux/dot/config/tmux/plugins
+	url = https://github.com/tmux-plugins/tpm
