@@ -77,6 +77,7 @@ create_symlink_for_ohmyzsh() {
 			local sourceFile="$dPath/$filename"
 			local targetFile="$targetpath/$directory/$filename"
 
+			rm -rf $targetFile
 			ln -fs $sourceFile $targetFile
 		done
 	done
