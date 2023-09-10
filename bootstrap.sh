@@ -21,12 +21,10 @@ answer_is_yes() {
 }
 
 backup_target_file() {
-	local suffix=".bak"
 	local sourceFile=$1
-	local targetFile="$2$suffix"
+	local targetFile="$sourceFile.bak"
 	# rename target file with .bak suffix when target file is not symlink.
-	# `ln -fs` command will rm previous symlink
-	if [ -L $sourceFile ]; then
+	if [ ! -L $sourceFile ]; then
 		if [ -e $targetFile ]; then
 			ask_for_confirmation "$targetFile already exists, do you want to overwrite it?"
 			if answer_is_yes; then
@@ -39,7 +37,8 @@ backup_target_file() {
 }
 
 create_symlink() {
-	# the code below will rm previous symlink.
+	# rm old file at first then create symlink.
+	rm -rf $2
 	ln -sf $1 $2
 	echo "$2 symlink is installed."
 }
@@ -58,7 +57,7 @@ install_dotfiles() {
 			targetFile="$HOME/.$filename"
 
 			# backup target file.
-			backup_target_file $sourceFile $targetFile
+			backup_target_file $targetFile
 
 			# create symlink.
 			create_symlink $sourceFile $targetFile
@@ -78,8 +77,6 @@ create_symlink_for_ohmyzsh() {
 			local sourceFile="$dPath/$filename"
 			local targetFile="$targetpath/$directory/$filename"
 
-			echo "sourceFile: $sourceFile"
-			echo "targetFile: $targetFile"
 			ln -fs $sourceFile $targetFile
 		done
 	done
