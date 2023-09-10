@@ -19,3 +19,6 @@
 [submodule "dot/config/tmux/dot/config/tmux/plugins"]
 	path = dot/config/tmux/dot/config/tmux/plugins
 	url = https://github.com/tmux-plugins/tpm
+[submodule "dot/config/tmux/plugins"]
+	path = dot/config/tmux/plugins
+	url = https://github.com/tmux-plugins/tpm
