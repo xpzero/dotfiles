@@ -1,0 +1,9 @@
+{
+  "cld": {
+    "prefix": "cld",
+    "body": [
+      "console.log('dev: $1', $2);"
+    ],
+    "description": "console with dev"
+  }
+}
