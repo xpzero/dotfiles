@@ -27,7 +27,7 @@ return {
       enable = true,
       additional_vim_regex_highlighting = false,
     },
-    -- 启用基于Treesitter的代码格式化(=) . NOTE: This is an experimental feature.
+    -- 使用 = 操作符控制格式化缩进时, 基于Treesitter进行缩进格式化. NOTE: This is an experimental feature.
     indent = {
       enable = true,
     },
