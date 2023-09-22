@@ -55,10 +55,10 @@ return {
     "folke/tokyonight.nvim",
     opts = {
       style = "moon",
-      transparent = true, -- 背景色透明
+      transparent = true, -- background transparent.
       styles = {
-        sidebars = "transparent", -- 侧边栏透明
-        floats = "transparent", -- 弹窗透明
+        sidebars = "transparent", -- sidebars transparent.
+        floats = "transparent", -- floats transparent
       },
     },
   },
