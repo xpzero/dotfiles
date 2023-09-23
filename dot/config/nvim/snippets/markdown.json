@@ -1,0 +1,6 @@
+{
+  "outinput title": {
+    "prefix": "title",
+    "body": ["---", "title: $1", "---"]
+  }
+}
