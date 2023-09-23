@@ -7,6 +7,7 @@ local options = {
   foldexpr = "nvim_treesitter#foldexpr()", -- base on nvim_treesitter to fold.
   foldenable = false, -- no fold to be applied when open a file
   foldlevel = 99, -- if not set this, fold will be everywhere
+  fileencoding = "utf-8",
 }
 
 -- vim.opt.shortmess:append("c")
