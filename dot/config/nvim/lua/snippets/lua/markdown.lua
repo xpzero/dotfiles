@@ -11,7 +11,7 @@ ls.add_snippets("markdown", {
     ]],
       {
         xxx = ls.function_node(function()
-          -- :t get string with extension at tail.
+          -- :t get trailing string with extension.
           -- :r get the string of before extension.
           -- return vim.fn.fnamemodify(vim.fn.bufname(), ":t:r")
           -- or below. source: https://neovim.io/doc/user/builtin.html#expand()
