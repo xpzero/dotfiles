@@ -7,7 +7,9 @@ local tt = ls.snippet(
     [[ 
     ---
     title: {xxx}
+    tags: [{}]
     ---
+    {}
     ]],
     {
       xxx = ls.function_node(function()
@@ -17,6 +19,8 @@ local tt = ls.snippet(
         -- or below. source: https://neovim.io/doc/user/builtin.html#expand()
         return vim.fn.expand("%:t:r")
       end),
+      ls.insert_node(1),
+      ls.insert_node(2),
     }
   )
 )
