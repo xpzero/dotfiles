@@ -7,8 +7,10 @@ local tt = ls.snippet(
     [[ 
     ---
     title: {xxx}
+    toc_max_heading_level: 6
     tags: [{}]
     ---
+    <!-- truncate -->
     {}
     ]],
     {
@@ -43,4 +45,20 @@ local tabs = ls.snippet(
   )
 )
 
-ls.add_snippets("markdown", { tt, tabs })
+local dd = ls.snippet(
+  "dd",
+  fmt(
+    [[
+<details>
+  <summary>{}</summary>
+  {}
+</details>
+]],
+    {
+      ls.insert_node(1),
+      ls.insert_node(2),
+    }
+  )
+)
+
+ls.add_snippets("markdown", { tt, tabs, dd })
