@@ -31,7 +31,7 @@
 
 因为`oh-my-zsh`的主题使用了`powerlevel10k`，需要安装`assets/font`中的字体，否则主题中的一些字体图标就会显示不出来
 
-### 安装`alacritty`和`tmux`（可选）
+### 安装`NeoVim`、`alacritty`和`tmux`（可选）
 
 需要去官网安装对应的软件。如是`Mac`系统，安装`brew`即可
 
