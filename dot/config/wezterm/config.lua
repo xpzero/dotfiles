@@ -1,6 +1,11 @@
 local wezterm = require("wezterm")
+local keys = require("keymap").keys
+local leader = require("keymap").leader
 
 return {
+	leader = leader,
+	keys = keys,
+
 	color_scheme = "Tokyo Night",
 	font = wezterm.font("MesloLGS NF"),
 	font_size = 16,
