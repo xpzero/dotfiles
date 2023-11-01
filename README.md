@@ -4,18 +4,16 @@
 
 ![LazyVim](./assets/img/LazyVim.png)
 
-### tmux
+### wezterm
 
-![tmux](./assets/img/tmux.png)
+![wezterm](./assets/img/wezterm.png)
 
 ## 说明
 
 仓库中包含
 
-- alacritty
+- wezterm
   - 终端软件，功能简单，速度快，跨平台可用
-- tmux
-  - 分屏工具，通过`tmux.nvim`插件，可与`nvim`配合使用
 - oh-my-zsh
   - shell工具，让终端命令使用起来更方便
 - powerlevel10k(p10k)
@@ -31,9 +29,11 @@
 
 因为`oh-my-zsh`的主题使用了`powerlevel10k`，需要安装`assets/font`中的字体，否则主题中的一些字体图标就会显示不出来
 
-### 安装`NeoVim`、`alacritty`和`tmux`（可选）
+### 安装`NeoVim`、`wezterm`
 
 需要去官网安装对应的软件。如是`Mac`系统，安装`brew`即可
+
+`wezterm`最好下载安装包，使用`brew`安装，可能有网络问题
 
 ### 安装配置文件
 
