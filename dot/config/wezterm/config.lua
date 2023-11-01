@@ -7,7 +7,7 @@ return {
 	keys = keys,
 
 	color_scheme = "Tokyo Night",
-	font = wezterm.font("MesloLGS NF"),
+	font = wezterm.font_with_fallback({ "MesloLGS NF", "Songti SC" }),
 	font_size = 16,
 	-- 窗口顶部装饰
 	-- window_decorations = "INTEGRATED_BUTTONS|RESIZE",
