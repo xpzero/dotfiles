@@ -26,17 +26,17 @@ end
 M.leader = { key = "q", mods = "CTRL" }
 
 M.keys = {
+	-- using prefix key & split pane
 	{ key = "-", mods = "LEADER", action = act.SplitVertical },
 	{ key = "|", mods = "LEADER", action = act.SplitHorizontal },
+	-- no use prefix key & close/open pane/window
 	{ key = "c", mods = "ALT", action = act.CloseCurrentPane({ confirm = false }) },
 	{ key = "w", mods = "ALT", action = act.SpawnTab("CurrentPaneDomain") },
 
-	-- { key = "h", mods = "CTRL", action = act.ActivatePaneDirection("Left") },
+	-- activate pane
 	move_pane("h", "CTRL", "Left"),
-
 	{ key = "j", mods = "CTRL", action = act.ActivatePaneDirection("Down") },
 	{ key = "k", mods = "CTRL", action = act.ActivatePaneDirection("Up") },
-	-- { key = "l", mods = "CTRL", action = act.ActivatePaneDirection("Right") },
 	move_pane("l", "CTRL", "Right"),
 }
 
