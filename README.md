@@ -28,7 +28,7 @@
 - nvim
   - `NeoVim`。比`Vim`功能更强大
 
-## 应用步骤
+## 安装步骤
 
 ### 安装`assets/font`中的字体
 
@@ -48,6 +48,12 @@
 ```sh
 git clone https://github.com/xpzero/dotfiles.git --recurse-submodules
 cd dotfiles && ./bootstrap.sh
+```
+
+如果子模块下载失败，可通过下面的更新子模块的命令重新下载子模块
+
+```
+git submodule update
 ```
 
 #### 脚本代码思路
