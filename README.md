@@ -34,11 +34,13 @@
 
 因为`oh-my-zsh`的主题使用了`powerlevel10k`，需要安装`assets/font`中的字体，否则主题中的一些字体图标就会显示不出来
 
-### 安装`NeoVim`、`wezterm`、`alacritty`和`tmux`（可选）
+### 安装`NeoVim`、`wezterm`、`alacritty`、`ripgrep`和`tmux`（可选）
 
 需要去官网安装对应的软件。如是`Mac`系统，安装`brew`即可
 
 `wezterm`最好下载安装包，使用`brew`安装，可能有网络问题
+
+`ripgrep`配合`telescope`使用
 
 ### 安装配置文件
 
