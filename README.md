@@ -36,7 +36,7 @@
 
 ### 安装`NeoVim`、`wezterm`、`alacritty`、`ripgrep`和`tmux`（可选）
 
-需要去官网安装对应的软件。如是`Mac`系统，安装`brew`即可
+需要去官网安装对应的软件。如是`Mac`系统，使用包管理工具`brew`，下载安装即可
 
 `wezterm`最好下载安装包，使用`brew`安装，可能有网络问题
 

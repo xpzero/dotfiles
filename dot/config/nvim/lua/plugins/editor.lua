@@ -83,6 +83,12 @@ return {
     },
   },
   {
+    "aserowy/tmux.nvim",
+    config = function()
+      return require("tmux").setup()
+    end,
+  },
+  {
     "folke/todo-comments.nvim",
     dependencies = { "nvim-lua/plenary.nvim" },
     opts = {
@@ -102,5 +108,12 @@ return {
       -- add any options here
     },
     lazy = false,
+  },
+  {
+    "TobinPalmer/rayso.nvim",
+    cmd = { "Rayso" },
+    config = function()
+      require("rayso").setup({})
+    end,
   },
 }

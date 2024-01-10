@@ -3,8 +3,8 @@ local keymap = require("keymap")
 local tab_bar = require("tab").tab_bar
 
 return {
-	leader = keymap.leader,
-	keys = keymap.keys,
+	-- leader = keymap.leader,
+	-- keys = keymap.keys,
 
 	color_scheme = "Tokyo Night",
 	font = wezterm.font_with_fallback({ "MesloLGS NF", "Songti SC" }),
