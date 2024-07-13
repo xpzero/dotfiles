@@ -1,0 +1,37 @@
+import = ["/Users/kehan/.config/alacritty/themes/themes/tokyo-night.yaml"]
+working_directory = "Documents/workspace/"
+
+[font]
+size = 16.0
+
+[font.normal]
+family = "MesloLGS NF"
+
+[[keyboard.bindings]]
+chars = "\u001F"
+key = "Slash"
+mods = "Control"
+
+[[keyboard.bindings]]
+action = "ToggleFullscreen"
+key = "Return"
+mods = "Command|Control"
+
+[[keyboard.bindings]]
+action = "ToggleSimpleFullscreen"
+key = "F"
+mods = "Command|Control"
+
+[window]
+decorations = "buttonless"
+opacity = 0.6
+option_as_alt = "Both"
+startup_mode = "Windowed"
+
+[window.dimensions]
+columns = 120
+lines = 35
+
+[window.padding]
+x = 10
+y = 10

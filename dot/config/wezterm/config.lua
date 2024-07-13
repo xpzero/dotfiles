@@ -13,7 +13,7 @@ return {
 	-- window_decorations = "INTEGRATED_BUTTONS|RESIZE",
 	window_decorations = "RESIZE",
 	native_macos_fullscreen_mode = true,
-	window_background_opacity = 0.8,
+	window_background_opacity = 0.5,
 	-- 配置默认工作目录
 	default_cwd = wezterm.home_dir .. "/Documents/workspace",
 	hide_tab_bar_if_only_one_tab = true,
