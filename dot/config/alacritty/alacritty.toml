@@ -1,3 +1,4 @@
+[general]
 import = ["/Users/kehan/.config/alacritty/themes/themes/tokyo-night.yaml"]
 working_directory = "Documents/workspace/"
 
