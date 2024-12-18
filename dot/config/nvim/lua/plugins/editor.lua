@@ -1,14 +1,4 @@
 return {
-  -- status line.
-  {
-    "nvim-lualine/lualine.nvim",
-    event = "VeryLazy",
-    opts = {
-      sections = {
-        lualine_z = {},
-      },
-    },
-  },
   -- directory tree.
   {
     "nvim-neo-tree/neo-tree.nvim",
@@ -58,18 +48,6 @@ return {
       },
     },
   },
-  -- global search
-  {
-    "nvim-telescope/telescope.nvim",
-    opts = {
-      defaults = {
-        layout_strategy = "horizontal",
-        layout_config = { prompt_position = "top" },
-        sorting_strategy = "ascending",
-        winblend = 0,
-      },
-    },
-  },
   -- colorscheme
   {
     "folke/tokyonight.nvim",
@@ -101,19 +79,5 @@ return {
         pattern = [[\b(KEYWORDS)\b]],
       },
     },
-  },
-  {
-    "numToStr/Comment.nvim",
-    opts = {
-      -- add any options here
-    },
-    lazy = false,
-  },
-  {
-    "TobinPalmer/rayso.nvim",
-    cmd = { "Rayso" },
-    config = function()
-      require("rayso").setup({})
-    end,
   },
 }
