@@ -6,18 +6,6 @@
           "all"
         ],
         "path": "./console.json"
-      },
-      {
-        "language": [
-          "markdown"
-        ],
-        "path": "./markdown.json"
-      },
-      {
-        "language": [
-          "javascript"
-        ],
-        "path": "./react.json"
       }
     ]
   }
