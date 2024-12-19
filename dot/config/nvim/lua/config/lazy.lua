@@ -32,6 +32,7 @@ require("lazy").setup({
 
     -- 控制台浮窗(vscode的界面样式)
     { import = "lazyvim.plugins.extras.ui.edgy" },
+    { import = "lazyvim.plugins.extras.ui.smear-cursor" },
     -- import/override with your plugins
     { import = "plugins" },
   },
