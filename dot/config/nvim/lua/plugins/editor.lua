@@ -31,10 +31,13 @@ return {
               "Filename without extension: " .. results[5],
               "Extension of the filename: " .. results[6],
             }, { prompt = "Choose to copy to clipboard:" }, function(choice)
-              local i = tonumber(choice:sub(1, 1))
-              local result = results[i]
-              vim.fn.setreg("+", result)
-              vim.notify("Copied: " .. result)
+              if choice then
+                local result = vim.split(choice, ": ")[2]
+                -- 将获取到的路径地址放到剪贴板上
+                vim.fn.setreg("+", result)
+                vim.notify("Copied: " .. result)
+                return
+              end
             end)
           end,
         },
