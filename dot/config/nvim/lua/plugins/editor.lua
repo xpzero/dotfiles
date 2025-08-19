@@ -87,4 +87,8 @@ return {
   {
     "sindrets/diffview.nvim",
   },
+  {
+    "Exafunction/windsurf.vim",
+    event = "BufEnter",
+  },
 }
