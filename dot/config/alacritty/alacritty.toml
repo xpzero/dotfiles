@@ -6,7 +6,7 @@ working_directory = "Documents/workspace/"
 size = 16.0
 
 [font.normal]
-family = "MesloLGS NF"
+family = "JetBrainsMonoNL Nerd Font Mono"
 
 [[keyboard.bindings]]
 chars = "\u001F"
