@@ -16,15 +16,15 @@ return {
         function()
           require("codecompanion").prompt("greet")
         end,
-        desc = "Kimi Chat",
+        desc = "LLM Chat",
       },
       {
         "<leader>ki",
         ":'<,'>CodeCompanion<cr>",
-        desc = "Kimi Inline",
+        desc = "LLM Inline",
         mode = "v",
       },
-      { "<leader>ka", "<cmd>CodeCompanionActions<cr>", desc = "Kimi Actions" },
+      { "<leader>ka", "<cmd>CodeCompanionActions<cr>", desc = "LLM Actions" },
     },
   },
 }
