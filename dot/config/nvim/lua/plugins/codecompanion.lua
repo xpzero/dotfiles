@@ -11,7 +11,13 @@ return {
       return require("user.codecompanion") -- 把配置独立出去，保持整洁
     end,
     keys = {
-      { "<leader>kk", "<cmd>CodeCompanionChat<cr>", desc = "Kimi Chat" },
+      {
+        "<leader>kk",
+        function()
+          require("codecompanion").prompt("greet")
+        end,
+        desc = "Kimi Chat",
+      },
       { "<leader>ki", "<cmd>CodeCompanion<cr>", desc = "Kimi Inline", mode = "v" },
       { "<leader>ka", "<cmd>CodeCompanionActions<cr>", desc = "Kimi Actions" },
     },

@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "context7": {
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "autoApprove": [
+        "resolve-library-id",
+        "get-library-docs"
+      ],
+      "command": "npx",
+      "disabled": false,
+      "env": {
+        "DEFAULT_MINIMUM_TOKENS": "$DEFAULT_MINIMUM_TOKENS"
+      }
+    }
+  },
+  "nativeMCPServers": {
+    "mcphub": {
+      "autoApprove": [
+        "get_current_servers",
+        "toggle_mcp_server"
+      ]
+    }
+  }
+}
