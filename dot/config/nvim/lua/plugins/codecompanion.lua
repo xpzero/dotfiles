@@ -18,7 +18,12 @@ return {
         end,
         desc = "Kimi Chat",
       },
-      { "<leader>ki", "<cmd>CodeCompanion<cr>", desc = "Kimi Inline", mode = "v" },
+      {
+        "<leader>ki",
+        ":'<,'>CodeCompanion<cr>",
+        desc = "Kimi Inline",
+        mode = "v",
+      },
       { "<leader>ka", "<cmd>CodeCompanionActions<cr>", desc = "Kimi Actions" },
     },
   },
