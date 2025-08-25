@@ -4,8 +4,6 @@ return {
     dependencies = {
       "nvim-lua/plenary.nvim",
       "nvim-treesitter/nvim-treesitter",
-      "nvim-telescope/telescope.nvim",
-      "stevearc/dressing.nvim",
     },
     opts = function()
       return require("user.codecompanion") -- 把配置独立出去，保持整洁
