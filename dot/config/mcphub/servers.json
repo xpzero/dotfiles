@@ -21,7 +21,8 @@
       "autoApprove": [
         "get_current_servers",
         "toggle_mcp_server"
-      ]
+      ],
+      "disabled": false
     }
   }
 }
