@@ -4,10 +4,6 @@
 
 ![LazyVim](./assets/img/LazyVim.png)
 
-### tmux
-
-![tmux](./assets/img/tmux.png)
-
 ### wezterm
 
 ![wezterm](./assets/img/wezterm.png)
@@ -32,15 +28,13 @@
 
 ### 安装`assets/font`中的字体
 
-因为`oh-my-zsh`的主题使用了`powerlevel10k`，需要安装`assets/font`中的字体，否则主题中的一些字体图标就会显示不出来
+配合`startship`显示图标字符
 
-### 安装`NeoVim`、`wezterm`、`alacritty`、`ripgrep`和`tmux`（可选）
+### 安装`NeoVim`、`wezterm`、`starship`
 
 需要去官网安装对应的软件。如是`Mac`系统，使用包管理工具`brew`，下载安装即可
 
 `wezterm`最好下载安装包，使用`brew`安装，可能有网络问题
-
-`ripgrep`配合`telescope`使用
 
 ### 安装配置文件
 
@@ -48,14 +42,7 @@
 - 执行安装脚本
 
 ```sh
-git clone https://github.com/xpzero/dotfiles.git --recurse-submodules
-cd dotfiles && ./bootstrap.sh
-```
-
-如果子模块下载失败，可通过下面的更新子模块的命令重新下载子模块
-
-```
-git submodule update
+git clone https://github.com/xpzero/dotfiles.git && cd dotfiles && ./bootstrap.sh
 ```
 
 #### 脚本代码思路
@@ -64,11 +51,3 @@ git submodule update
 2. 如果上面的文件(夹)添加`$HOME/.`前缀后，可在家目录中找到，且不是软链接类型，则为其创建备份(原文件(夹)重命名为带有`.bak`的文件(夹))
 3. 将`dotfiles/dot/`下的所有文件(夹)添加`$HOME/.`前缀，软链接到家(这里是`$HOME`)目录
 4. 将`dotfiles/zsh/`下的所有文件夹根据其名字链接到`dotfiles/dot/oh-my-zsh/`下对应的目录中
-
-##### 注意
-
-`oh-my-zsh`、`powerlevel10k`等都是作为当前项目的子模块存在于repo目录中的。
-
-普通克隆不会安装子模块，需要使用`--recurse-submodules`参数进行递归克隆。
-
-子模块的repo地址都是github域名，网络问题需要考虑下。比如使用github域名的host代理解决下载问题。
