@@ -18,70 +18,63 @@ end
 local M = {}
 M.setup = function(config)
 	config.use_fancy_tab_bar = false
-	config.tab_bar_at_bottom = true
+	config.tab_bar_at_bottom = false
 	config.hide_tab_bar_if_only_one_tab = true
 	config.tab_max_width = 32
 	config.unzoom_on_switch_pane = true
 	config.show_new_tab_button_in_tab_bar = false
 
-	wezterm.on("format-tab-title", function(tab, tabs, panes, config, hover, max_width)
-		wezterm.log_info("tab", tab.tab_title)
-		wezterm.log_info("tab-dir", tab.active_pane.current_working_dir)
-		wezterm.log_info("panes", panes)
-		-- 获取当前工作目录
-		local title = basename(tab.active_pane.current_working_dir)
-		local style = {}
+	local RIGHT_BORDER = ""
+
+	local function tab_title(tab_info)
+		local title = tab_info.tab_title
+		-- if the tab title is explicitly set, take that
+		if title and #title > 0 then
+			return title
+		end
+		-- Otherwise, use the title from the active pane
+		-- in that tab
+		return tab_info.active_pane.title
+	end
+
+	wezterm.on("format-tab-title", function(tab, _, _, _, hover, max_width)
+		-- local edge_background = "#2a2a40"
+		local background = "#1a1b26"
+		local foreground = "#c0caf5"
+		local edge_foreground = background
+
 		if tab.is_active then
-			style = {
-				{ Background = { Color = "#ede8d7" } },
-				{ Foreground = { Color = "#4386f7" } },
-				{ Text = " " .. tab.tab_index .. " " },
-
-				{ Background = { Color = "#4386f7" } },
-				{ Foreground = { Color = "#ede8d7" } },
-				{ Text = SOLID_RIGHT_ARROW },
-
-				{ Background = { Color = "#4386f7" } },
-				{ Foreground = { Color = "#fff" } },
-				{ Text = " " .. title .. " " },
-
-				{ Background = { Color = "#0b0022" } },
-				{ Foreground = { Color = "#4386f7" } },
-				{ Text = SOLID_RIGHT_ARROW },
-			}
-		else
-			style = {
-
-				{ Background = { Color = "#ede8d7" } },
-				{ Foreground = { Color = "#0b0022" } },
-				{ Text = " " .. tab.tab_index .. " " },
-
-				{ Background = { Color = "#96a1a1" } },
-				{ Foreground = { Color = "#ede8d7" } },
-				{ Text = SOLID_RIGHT_ARROW },
-
-				{ Background = { Color = "#96a1a1" } },
-				{ Foreground = { Color = "#0b0022" } },
-				{ Text = " " .. title .. " " },
-
-				{ Background = { Color = "#0b0022" } },
-				{ Foreground = { Color = "#96a1a1" } },
-				{ Text = SOLID_RIGHT_ARROW },
-			}
+			background = "#7aa2f7"
+			foreground = "#e3e5e5"
+		elseif hover then
+			background = "#1b1b32"
+			foreground = "#909090"
 		end
 
-		local separator = {
-			{ Background = { Color = "#ede8d7" } },
-			{ Foreground = { Color = "#0b0022" } },
-			{ Text = SOLID_RIGHT_ARROW },
+		local title = tab_title(tab)
+
+		-- ensure that the titles fit in the available space,
+		-- and that we have room for the edges.
+		title = wezterm.truncate_right(title, max_width - 2)
+
+		return {
+			-- Right border
+			{ Background = { Color = tab.is_active and "#7aa2f7" or "#1a1b26" } },
+			{ Foreground = { Color = edge_foreground } },
+			{ Text = (tab.is_active and tab.tab_index ~= 0) and RIGHT_BORDER or " " },
+
+			-- Tab title
+			{ Background = { Color = background } },
+			{ Foreground = { Color = foreground } },
+			{ Text = " " .. title .. " " },
+
+			-- Right border
+			{ Background = { Color = "#1a1b26" } },
+			{ Foreground = { Color = tab.is_active and "#7aa2f7" or "#c0caf5" } },
+			{ Text = tab.is_active and RIGHT_BORDER or " " },
+
+			-- If you want, add more stuff to the tab bar.
 		}
-
-		if tab.tab_index ~= 0 then
-			for i = 1, #separator do
-				table.insert(style, i, separator[i])
-			end
-		end
-		return style
 	end)
 
 	wezterm.on("update-right-status", function(window, pane)

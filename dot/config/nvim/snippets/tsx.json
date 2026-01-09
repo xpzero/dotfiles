@@ -1,0 +1,9 @@
+{
+  "rfc": {
+    "prefix": "rfc",
+    "body": [
+      "import styles from './index.module.scss';\n\nconst pfx = '';\nexport default () => {\n  return (\n    <div>\n      $1\n </div>\n  );\n}"
+    ],
+    "description": "console with dev"
+  }
+}
