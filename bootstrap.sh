@@ -15,6 +15,22 @@ info() { printf "${BLUE}[INFO]${NC} %s\n" "$1"; }
 success() { printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"; }
 error() { printf "${RED}[ERROR]${NC} %s\n" "$1"; }
 
+# brew镜像
+set_brew_mirrors() {
+  info "正在配置 Homebrew 国内镜像源..."
+
+  # 1. 设置环境变量，加速 API 和 Bottles 下载
+  export HOMEBREW_API_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
+  export HOMEBREW_BREW_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
+  export HOMEBREW_CORE_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
+  export HOMEBREW_BOTTLE_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
+
+  # 2. 如果已经安装过，同步重置远程仓库地址 (可选)
+  if command -v brew &>/dev/null; then
+    git -C "$(brew --repo)" remote set-url origin mirrors.tuna.tsinghua.edu.cn
+  fi
+}
+
 # 1. 自动安装 Homebrew
 install_brew() {
   # 提前设置禁止更新的环境变量
