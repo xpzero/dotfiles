@@ -1,7 +1,7 @@
 return {
   {
     "Zeioth/markmap.nvim",
-    build = "yarn global add markmap-cli",
+    build = "npm install -g markmap-cli",
     cmd = { "MarkmapOpen", "MarkmapSave", "MarkmapWatch", "MarkmapWatchStop" },
     opts = {
       html_output = "/tmp/markmap.html", -- (default) Setting a empty string "" here means: [Current buffer path].html

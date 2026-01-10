@@ -12,7 +12,7 @@ config.font = wezterm.font_with_fallback({
 	"FiraCode Nerd Font Mono",
 })
 
-config.window_background_opacity = 0.5
+config.window_background_opacity = 0.8
 config.macos_window_background_blur = 20
 config.color_scheme = "tokyonight_night"
 config.window_decorations = "RESIZE"
