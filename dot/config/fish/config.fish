@@ -1,5 +1,7 @@
 set -gx EDITOR n
 set -gx PATH $PATH /opt/homebrew/bin
+set -gx HOMEBREW_NO_AUTO_UPDATE 1
+
 if status is-interactive
     # 初始化 Starship 提示符
     starship init fish | source
