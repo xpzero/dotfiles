@@ -111,10 +111,10 @@ initialize_repo() {
   fi
 }
 
-setup_font() {
-  cp -r assets/font/ ~/Library/Fonts
+setup_software() {
+  brew install neovim wezterm fish starship
 }
 
 install_dotfiles
-create_symlink_for_ohmyzsh
-setup_font
+# create_symlink_for_ohmyzsh
+setup_software

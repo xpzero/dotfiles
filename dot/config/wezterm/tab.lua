@@ -53,10 +53,5 @@ return {
 		config.show_new_tab_button_in_tab_bar = false
 
 		wezterm.on("format-tab-title", formatTabTitle)
-
-		wezterm.on("gui-startup", function(cmd)
-			local tab, pane, window = wezterm.mux.spawn_window(cmd or {})
-			window:gui_window():maximize()
-		end)
 	end,
 }
