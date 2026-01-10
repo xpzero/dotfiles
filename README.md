@@ -23,11 +23,8 @@
 
 ## 安装
 
-- 拉取本仓库代码
-- 执行安装脚本
-
 ```sh
-git clone https://github.com/xpzero/dotfiles.git && cd dotfiles && ./bootstrap.sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/xpzero/dotfiles/refs/heads/wezterm/bootstrap.sh)"
 ```
 
 ### 脚本代码思路
