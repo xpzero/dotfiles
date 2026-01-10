@@ -112,7 +112,7 @@ initialize_repo() {
 }
 
 setup_software() {
-  brew install neovim wezterm fish starship
+  brew install neovim wezterm fish starship fnm
 }
 
 install_dotfiles
