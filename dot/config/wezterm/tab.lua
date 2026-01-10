@@ -24,12 +24,13 @@ local function formatTabTitle(tab, tabs, panes, config, hover, max_width)
 	-- and that we have room for the edges.
 	title = wezterm.truncate_right(title, max_width - 2)
 
-	local RIGHT_BORDER = ""
+	-- The filled in variant of the > symbol
+	local SOLID_RIGHT_ARROW = wezterm.nerdfonts.pl_left_hard_divider
 	return {
 		-- Right border
 		{ Background = { Color = tab.is_active and "#7aa2f7" or "#1a1b26" } },
 		{ Foreground = { Color = edge_foreground } },
-		{ Text = (tab.is_active and tab.tab_index ~= 0) and RIGHT_BORDER or " " },
+		{ Text = (tab.is_active and tab.tab_index ~= 0) and SOLID_RIGHT_ARROW or " " },
 
 		-- Tab title
 		{ Background = { Color = background } },
@@ -39,7 +40,7 @@ local function formatTabTitle(tab, tabs, panes, config, hover, max_width)
 		-- Right border
 		{ Background = { Color = "#1a1b26" } },
 		{ Foreground = { Color = tab.is_active and "#7aa2f7" or "#c0caf5" } },
-		{ Text = tab.is_active and RIGHT_BORDER or " " },
+		{ Text = tab.is_active and SOLID_RIGHT_ARROW or " " },
 	}
 end
 
@@ -52,5 +53,10 @@ return {
 		config.show_new_tab_button_in_tab_bar = false
 
 		wezterm.on("format-tab-title", formatTabTitle)
+
+		wezterm.on("gui-startup", function(cmd)
+			local tab, pane, window = wezterm.mux.spawn_window(cmd or {})
+			window:gui_window():maximize()
+		end)
 	end,
 }
