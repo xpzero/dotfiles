@@ -2,7 +2,7 @@ local wezterm = require("wezterm")
 
 local function formatTabTitle(tab, tabs, panes, config, hover, max_width)
 	local function tab_title(tab_info)
-		local current_dir = wezterm.mux.get_pane(tab_info.tab_index):get_current_working_dir()
+		local current_dir = wezterm.mux.get_pane(tab_info.active_pane.pane_id):get_current_working_dir()
 		return current_dir.file_path:match("([^/]+)$")
 	end
 
