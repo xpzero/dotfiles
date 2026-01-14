@@ -1,4 +1,4 @@
-set -gx EDITOR n
+set -gx EDITOR nvim
 set -gx PATH $PATH /opt/homebrew/bin
 # 在文件末尾添加以下镜像配置（以清华源为例）
 set -gx HOMEBREW_API_DOMAIN "mirrors.tuna.tsinghua.edu.cn"
