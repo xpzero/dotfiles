@@ -36,8 +36,8 @@ M.keys = {
 
 	-- activate pane
 	move_pane("h", "CTRL", "Left"),
-	{ key = "j", mods = "CTRL", action = act.ActivatePaneDirection("Down") },
-	{ key = "k", mods = "CTRL", action = act.ActivatePaneDirection("Up") },
+	move_pane("j", "CTRL", "Down"),
+	move_pane("k", "CTRL", "Up"),
 	move_pane("l", "CTRL", "Right"),
 
 	-- switch tab
