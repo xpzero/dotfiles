@@ -2,6 +2,7 @@
   "extras": [
     "lazyvim.plugins.extras.coding.nvim-cmp",
     "lazyvim.plugins.extras.editor.fzf",
+    "lazyvim.plugins.extras.lang.markdown",
     "lazyvim.plugins.extras.lang.typescript",
     "lazyvim.plugins.extras.linting.eslint"
   ],
