@@ -51,3 +51,6 @@ alias gstd='git stash drop'
 alias gstl='git stash list'
 alias gstp='git stash pop'
 alias gst='git status'
+
+# opencode
+fish_add_path /Users/kehan/.opencode/bin
