@@ -3,18 +3,29 @@ local act = wezterm.action
 
 local M = {}
 
+-- 改进的vim检测函数
+local function is_vim(pane)
+	local process_info = pane:get_foreground_process_info()
+	if not process_info then
+		return false
+	end
+
+	local process_name = process_info.name
+	-- 检测常见的编辑器进程
+	return process_name == "nvim" or process_name == "vim" or process_name == "vi"
+end
+
 local function move_pane(key, mods, direction)
 	local event_name = "MovePane_" .. direction
 	wezterm.on(event_name, function(window, pane)
-		wezterm.log_error(pane:is_alt_screen_active())
-		if pane:is_alt_screen_active() then
+		-- 使用改进的vim检测
+		if is_vim(pane) then
+			-- 如果在vim/nvim中，发送键位给编辑器
 			window:perform_action(act.SendKey({ key = key, mods = mods }), pane)
 		else
+			-- 如果不在vim中，切换wezterm pane
 			window:perform_action(act.ActivatePaneDirection(direction), pane)
 		end
-
-		-- view log by print [wezterm start] to terminal
-		-- wezterm.log_info("MovePane_" .. direction)
 	end)
 	return {
 		key = key,

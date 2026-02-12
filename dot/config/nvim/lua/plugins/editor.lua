@@ -46,6 +46,11 @@ return {
             Y = "copy_selector",
             h = "close_node",
             l = "open",
+            -- 使用 Ctrl 组合键进行导航，避免与默认快捷键冲突
+            ["<C-h>"] = "navigate_up",
+            ["<C-l>"] = "none", -- 让 smart-splits 处理右移
+            ["<C-j>"] = "none", -- 让 smart-splits 处理下移
+            ["<C-k>"] = "none", -- 让 smart-splits 处理上移
           },
         },
       },
@@ -67,6 +72,19 @@ return {
     "aserowy/tmux.nvim",
     config = function()
       return require("tmux").setup()
+    end,
+  },
+  {
+    "mrjones2014/smart-splits.nvim",
+    build = "./kitty/install-kittens.bash",
+    config = function()
+      require("smart-splits").setup({
+        multiplexerIntegration = "wezterm",
+        ignore_single_chdir = true,
+        at_edge = "wrap",
+        -- 确保在 neo-tree 等特殊窗口中也能正常工作
+        disabled_filetypes = {},
+      })
     end,
   },
   {
