@@ -60,7 +60,7 @@ install_brew() {
 # 2. 安装软件
 setup_software() {
   info "正在通过 Homebrew 安装软件..."
-  local apps=(neovim wezterm fish starship fnm git)
+  local apps=(neovim wezterm fish starship fnm git fzf ripgrep)
   for app in "${apps[@]}"; do
     if ! brew list "$app" &>/dev/null; then
       brew install "$app"
