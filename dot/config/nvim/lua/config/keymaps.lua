@@ -15,7 +15,6 @@ end
 
 -- navigation to wezterm panes using smart-splits.nvim
 -- 这些快捷键可以在 neovim 窗口、neo-tree 和 wezterm pane 之间无缝穿梭
-<<<<<<< HEAD
 map("n", "<C-h>", function()
   require("smart-splits").move_cursor_left()
 end, { desc = "Go to left window/pane" })
@@ -28,9 +27,3 @@ end, { desc = "Go to upper window/pane" })
 map("n", "<C-l>", function()
   require("smart-splits").move_cursor_right()
 end, { desc = "Go to right window/pane" })
-=======
-map("n", "<C-h>", function() require("smart-splits").move_cursor_left() end, { desc = "Go to left window/pane" })
-map("n", "<C-j>", function() require("smart-splits").move_cursor_down() end, { desc = "Go to lower window/pane" })
-map("n", "<C-k>", function() require("smart-splits").move_cursor_up() end, { desc = "Go to upper window/pane" })
-map("n", "<C-l>", function() require("smart-splits").move_cursor_right() end, { desc = "Go to right window/pane" })
->>>>>>> 794ec092dfaa219d34a2e5997a44ef7971784a0e
