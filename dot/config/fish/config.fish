@@ -1,4 +1,4 @@
-set -gx EDITOR n
+set -gx EDITOR nvim
 set -gx PATH $PATH /opt/homebrew/bin
 # 在文件末尾添加以下镜像配置（以清华源为例）
 set -gx HOMEBREW_API_DOMAIN "mirrors.tuna.tsinghua.edu.cn"
@@ -21,7 +21,6 @@ alias pn="pnpm"
 alias pnx="pnpx"
 alias n="nvim"
 # alias of git
-alias gst='git status'
 alias ga='git add'
 alias gaa='git add --all'
 alias gb='git branch'
@@ -46,8 +45,12 @@ alias gp='git push'
 alias gpf='git push --force'
 alias grhh='git reset --hard'
 alias grs='git restore'
+alias gsta='git stash save'
 alias gstc='git stash clear'
 alias gstd='git stash drop'
 alias gstl='git stash list'
 alias gstp='git stash pop'
 alias gst='git status'
+
+# opencode
+fish_add_path /Users/xupeishan/.opencode/bin

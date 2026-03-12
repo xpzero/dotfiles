@@ -5,7 +5,7 @@ require("tab").setup(config)
 require("keymap").setup(config)
 
 -- font
-config.font_size = 16
+config.font_size = 20
 config.font_dirs = { "../../../assets/fonts" }
 config.font = wezterm.font_with_fallback({
 	"JetBrains Mono",
