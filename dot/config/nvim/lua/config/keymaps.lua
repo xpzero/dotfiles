@@ -13,8 +13,17 @@ local function map(mode, lhs, rhs, opts)
   end
 end
 
--- navigation to tmux
-map("n", "<C-h>", "<cmd>lua require'tmux'.move_left()<cr>", { desc = "Go to left window" })
-map("n", "<C-j>", "<cmd>lua require'tmux'.move_bottom()<cr>", { desc = "Go to lower window" })
-map("n", "<C-k>", "<cmd>lua require'tmux'.move_top()<cr>", { desc = "Go to upper window" })
-map("n", "<C-l>", "<cmd>lua require'tmux'.move_right()<cr>", { desc = "Go to right window" })
+-- navigation to wezterm panes using smart-splits.nvim
+-- 这些快捷键可以在 neovim 窗口、neo-tree 和 wezterm pane 之间无缝穿梭
+map("n", "<C-h>", function()
+  require("smart-splits").move_cursor_left()
+end, { desc = "Go to left window/pane" })
+map("n", "<C-j>", function()
+  require("smart-splits").move_cursor_down()
+end, { desc = "Go to lower window/pane" })
+map("n", "<C-k>", function()
+  require("smart-splits").move_cursor_up()
+end, { desc = "Go to upper window/pane" })
+map("n", "<C-l>", function()
+  require("smart-splits").move_cursor_right()
+end, { desc = "Go to right window/pane" })

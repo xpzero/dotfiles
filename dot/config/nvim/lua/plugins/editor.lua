@@ -44,8 +44,6 @@ return {
         window = {
           mappings = {
             Y = "copy_selector",
-            h = "close_node",
-            l = "open",
           },
         },
       },
@@ -64,9 +62,15 @@ return {
     },
   },
   {
-    "aserowy/tmux.nvim",
+    "mrjones2014/smart-splits.nvim",
     config = function()
-      return require("tmux").setup()
+      require("smart-splits").setup({
+        multiplexerIntegration = "wezterm",
+        ignore_single_chdir = true,
+        at_edge = "wrap",
+        -- 确保在 neo-tree 等特殊窗口中也能正常工作
+        disabled_filetypes = {},
+      })
     end,
   },
   {
@@ -88,7 +92,9 @@ return {
     "sindrets/diffview.nvim",
   },
   {
-    "Exafunction/windsurf.vim",
-    event = "BufEnter",
+    "gitsigns.nvim",
+    opts = {
+      current_line_blame = true,
+    },
   },
 }
