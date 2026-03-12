@@ -44,6 +44,13 @@ return {
         window = {
           mappings = {
             Y = "copy_selector",
+            h = "close_node",
+            l = "open",
+            -- 使用 Ctrl 组合键进行导航，避免与默认快捷键冲突
+            ["<C-h>"] = "navigate_up",
+            ["<C-l>"] = "none", -- 让 smart-splits 处理右移
+            ["<C-j>"] = "none", -- 让 smart-splits 处理下移
+            ["<C-k>"] = "none", -- 让 smart-splits 处理上移
           },
         },
       },
