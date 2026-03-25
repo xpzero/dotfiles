@@ -72,7 +72,7 @@ return {
     "mrjones2014/smart-splits.nvim",
     config = function()
       require("smart-splits").setup({
-        multiplexerIntegration = "wezterm",
+        multiplexerIntegration = "zellij", -- 改为 zellij 因为你在 zellij 中使用
         ignore_single_chdir = true,
         at_edge = "wrap",
         -- 确保在 neo-tree 等特殊窗口中也能正常工作
