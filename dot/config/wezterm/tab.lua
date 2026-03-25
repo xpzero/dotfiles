@@ -51,6 +51,7 @@ return {
 		config.tab_max_width = 32
 		config.unzoom_on_switch_pane = true
 		config.show_new_tab_button_in_tab_bar = false
+		config.hide_tab_bar_if_only_one_tab = true
 
 		wezterm.on("format-tab-title", formatTabTitle)
 	end,
