@@ -45,11 +45,11 @@ M.keys = {
 	{ key = "c", mods = "ALT", action = act.CloseCurrentPane({ confirm = false }) },
 	-- { key = "w", mods = "ALT", action = act.SpawnTab("CurrentPaneDomain") },
 
-	-- activate pane
-	move_pane("h", "CTRL", "Left"),
-	move_pane("j", "CTRL", "Down"),
-	move_pane("k", "CTRL", "Up"),
-	move_pane("l", "CTRL", "Right"),
+	-- activate pane (在 zellij 中使用，禁用这些快捷键让 nvim 处理)
+	-- move_pane("h", "CTRL", "Left"),
+	-- move_pane("j", "CTRL", "Down"),
+	-- move_pane("k", "CTRL", "Up"),
+	-- move_pane("l", "CTRL", "Right"),
 
 	-- switch tab
 	{ key = "l", mods = "ALT", action = act({ ActivateTabRelative = 1 }) },
