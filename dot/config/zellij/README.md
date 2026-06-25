@@ -6,7 +6,7 @@
 
 - **多个需求并行**：每个需求独立的工作目录、Zellij session、窗口布局
 - **快速切换**：一条命令切换到任意需求，自动 detach/attach Zellij session
-- **APFS CoW**：`node_modules` 写时复制，新需求启动几乎瞬时
+- **本地缓存**：使用 `tnpm install --prefer-offline`，从本地缓存安装，新需求启动约 5-10 秒
 - **自动布局**：每个需求预定义 nvim + terminal 窗口布局，进入即可用
 - **分支隔离**：使用 git worktree，多个需求可以同时 checkout 同一仓库的不同分支
 
@@ -27,37 +27,44 @@
 req-create my-feature
 ```
 
-交互式选择项目和分支，自动完成：
-- 创建 `~/Documents/workspace/reqs/my-feature/` 目录
-- 为每个项目创建 git worktree
-- CoW 复制 `node_modules`（APFS 写时复制，瞬时完成）
-- 运行 `tnpm install --prefer-offline`（仅下载差异包）
-- 生成 `.req/profiles/my-feature.json`（需求元数据）
-- 生成 `.req/reqs/my-feature/layout.kdl`（Zellij 布局）
+**一条命令完成全部**：交互式选择项目和分支 → 自动创建 worktree → 安装依赖 → 生成布局 → 直接进入 Zellij session。`--enter` 是默认行为，无需手动输入。
 
-### 2. 进入需求
+自动完成：
+- 如果分支不存在，询问是否基于 master 创建（fetch + pull + create）
+- 运行 `tnpm install --prefer-offline`（使用本地 tnpm 缓存，通常 5-10 秒）
+- 生成 `.req/profiles/<名称>.json` 和 `.req/reqs/<名称>/layout.kdl`
+- 创建 Zellij session 并自动 attach 进去
+
+**三种调用方式**：
+
+| 方式 | 示例 | 说明 |
+|------|------|------|
+| 完全交互 | `req-create my-feature` | 一步步选项目、选分支 |
+| 混合模式 | `req-create my-feature product-page product-form:feat/b` | 传项目名，自动问缺失的分支 |
+| 完全参数 | `req-create my-feature product-page:feat/a product-form:feat/b` | 所有信息命令行传完 |
+
+右侧工具窗格默认启动 `qodercli`，可用 `--right-cmd=xxx` 覆盖：
+```fish
+req-create my-feature --right-cmd=fish
+```
+
+### 2. 进入/切换需求
 
 ```fish
 zj my-feature
 ```
 
 自动：
-- 检测是否在 Zellij 内，如果在则先 detach
-- 创建或 attach Zellij session `req-my-feature`
-- 加载预定义的 layout（nvim + terminal）
+- 如果 session 已存在 → 直接 attach 进入
+- 如果不存在 → 先创建（按 layout.kdl）然后 attach
+- 如果当前在 Zellij 内 → 先 auto-detach 再 attach 到目标 session
 
-### 3. 切换需求
-
-```fish
-zj another-feature
-```
-
-自动 detach 当前需求，切换过去。
-
-或者在 Zellij session 内使用：
+在 Zellij session 内使用快捷键：
 ```
 Alt-z → w → 选择目标 session
 ```
+
+### 3+4. 合并了：创建需求后直接进入，无需额外步骤
 
 ### 4. 查看状态
 
@@ -65,9 +72,9 @@ Alt-z → w → 选择目标 session
 rqs
 ```
 
-输出示例：
+示例输出：
 ```
-── my-feature ──
+── my-feature ─
   product-page: feature/my-feature [dirty]
   product-form-components: feature/my-feature
 
@@ -110,22 +117,38 @@ req-remove my-feature
 
 ## 布局文件
 
-每个需求的 layout.kdl 预定义窗口布局：
+每个需求的 layout.kdl 预定义窗口布局（由 `req-create` 自动生成）：
 
 ```kdl
 layout {
     pane size="5%" borderless=true {
         plugin location="zellij:compact-bar"
     }
-    pane split_direction="horizontal" size="55%" {
-        pane name="product-page" command="nvim" { cwd "~/Documents/workspace/reqs/my-feature/product-page"; }
-        pane name="product-form-components" command="nvim" { cwd "~/Documents/workspace/reqs/my-feature/product-form-components"; }
-    }
-    pane size="40%" {
-        pane name="terminal" { cwd "~/Documents/workspace/reqs/my-feature"; }
+    pane split_direction="horizontal" {
+        pane split_direction="vertical" size="70%" {
+            pane split_direction="horizontal" size="70%" {
+                pane name="product-page" command="nvim" { cwd "..."; }
+                pane name="product-form-components" command="nvim" { cwd "..."; }
+            }
+            pane size="30%" {
+                pane name="product-page-dev" command="fish" { cwd "..."; }
+                pane name="product-form-components-dev" command="fish" { cwd "..."; }
+                pane name="terminal" command="fish" { cwd "..."; }
+            }
+        }
+        pane size="30%" {
+            pane name="tool" command="qodercli" { cwd "..."; }
+        }
     }
 }
 ```
+
+**布局结构**：
+- 顶部 `5%`：compact-bar（状态栏 + 快捷键提示）
+- 左侧 `60%`：
+  - 上方 `70%`：各项目的 nvim 编辑窗格（并排）
+  - 下方 `30%`：各项目的 dev server 终端 + 通用终端
+- 右侧 `30%`：`qodercli`（默认 AI 工具，可通过 `--right-cmd` 指定）
 
 可以手动编辑 `.req/reqs/<name>/layout.kdl` 调整布局。
 
@@ -142,6 +165,64 @@ Zellij 内可用快捷键（修改自默认 `Ctrl+o`）：
 - **ANSI 绕过**：session 存在性检查使用 `grep` 而非 fish `string match`，避免 ANSI 转义导致误判
 - **PPID 检测**：追踪父进程链检测是否在 Zellij 内，比环境变量更可靠
 - **CoW 复制**：APFS 文件系统下 `cp -a` 使用写时复制，`node_modules` 仅在实际修改时才占用额外磁盘空间
+
+## 开发规范
+
+### 分支策略
+
+`req-create` 支持使用已有分支或自动创建新分支。分支名由你显式指定:
+
+```fish
+# 交互式输入分支名
+req-create my-feature
+
+# 或命令行直接传 <项目>:<分支> 对
+req-create my-feature product-page:feature/xxx product-form-components:feature/yyy
+```
+
+**流程**:
+1. 脚本检查目标分支是否存在(本地或 `remotes/origin/`)
+2. 分支存在 → 在该分支上创建 worktree
+3. 分支不存在 → 询问是否基于 master 创建:
+   - `Y`(默认) → fetch + pull origin/master,然后 `git branch <新分支> master`
+   - `n` → 跳过该项目
+4. 如果主仓库正占用该分支,会先 stash 并 checkout 到 master,避免冲突
+
+分支命名遵循团队规范,通常是 `feature/YYYYMMDD_工号_描述`(Aone 风格)。
+
+### Git Worktree 设计
+
+- **主仓库**(`repos/`)：保持在 `master` 分支,作为 worktree 的源
+- **worktree**(`reqs/<需求名>/<项目>`)：每个需求在对应项目的 target 分支上创建独立工作区
+- **分支隔离**：同一仓库的不同分支可以同时在不同 worktree 中 checkout,互不干扰
+- **限制**：同一分支不能被多个 worktree 同时占用(Git 硬限制)
+
+### node_modules 本地缓存策略
+
+**问题**：每个需求都需要完整的 `node_modules`，完整下载通常需要 500MB-2GB。
+
+**解决**：`tnpm install --prefer-offline` 利用本地 tnpm 缓存
+
+- 包文件第一次下载后缓存在本地（`~/.tnpm/`）
+- 新需求创建时直接从缓存提取，无需联网
+- 不同需求的 `node_modules` 互相独立，互不影响
+
+**效果**：
+
+| 场景 | 表现 |
+|------|------|
+| 首次创建需求（有本地缓存） | 5-10 秒完成安装 |
+| `tnpm install new-pkg` | 只下载新增包，不影响其他需求 |
+| `tnpm uninstall old-pkg` | 只删除当前需求的文件 |
+| 主仓库后续装新包 | worktree 不自动同步，需要手动 `tnpm install` |
+
+**隐含要求**：worktree 和主仓库必须用**同一个 node 版本**，否则含原生模块(如 `node-sass` 的 C++ 扩展)会崩。推荐使用 `fnm` 配合 `.node-version` 文件锁定版本。
+
+### Node 版本管理
+
+- 用 `fnm` 管理多个 node 版本
+- 项目根目录放 `.node-version` 文件(如 `20.19.0`)
+- fish 启动时加载 `~/.config/fish/conf.d/node.fish`,进入含 `.node-version`/`.nvmrc` 的目录时自动切换
 
 ## 配置
 
@@ -248,10 +329,9 @@ git clone https://your-repo-url/some-project.git
 
 # 创建需求工作区
 req-create my-first-feature
-# 交互式填写:项目(从 repos/ 中选)、分支、右侧命令(opencode/qoder/fish)
-
-# 进入需求
-zj my-first-feature
+# 交互式填写:项目(从 repos/ 中选)、分支
+# 右侧工具默认 qodercli（可用 --right-cmd=xxx 更改）
+# 完成后自动进入 Zellij session，无需额外命令
 ```
 
 **场景 B:从已有 profile 恢复**
@@ -269,9 +349,9 @@ zj existing-feature  # 自动重新生成 layout.kdl,创建 session,attach 进�
 | 问题 | 排查 |
 |------|------|
 | `zj <name>` 报 "Could not attach" | 确保不在其他 zellij session 内,或先在当前 session 里 `Alt-z → d` detach |
-| 右侧 opencode 没自动启动 | `python3 -c "import pty"` 应成功;检查 `~/.config/wezterm/zellij-spawn.py` 存在 |
+| 右侧 qodercli 没自动启动 | `python3 -c "import pty"` 应成功;检查 `~/.config/wezterm/zellij-spawn.py` 存在；或尝试 `--right-cmd=fish` 切换为空白终端 |
 | `Alt-z` 没反应 | 检查 `~/.config/zellij/config.kdl` 是否包含 `bind "Alt z"` |
-| layout 加载失败 | 检查 profile.json 里 `rightPaneCommand` 字段是否存在 |
+| layout 加载失败 | 检查 profile.json 里 `rightPaneCommand` 字段是否存在；确认 `.req/reqs/<name>/layout.kdl` 存在且语法正确 |
 | worktree 创建失败 | 通常是分支冲突(主仓库正在占用),先 `git stash` 并切回 master |
 
 ## 跨机器说明
