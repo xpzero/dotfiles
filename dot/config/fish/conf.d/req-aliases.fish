@@ -123,10 +123,43 @@ function zj --description "切换或创建需求 Zellij session"
 end
 
 # req-create: 创建需求工作区（worktree + CoW node_modules + profile + layout + whistle）
+#
+# 用法:
+#   交互模式:  req-create <需求名> [--right-cmd=xxx] [--enter]
+#   参数模式:  req-create <需求名> <proj1:branch1> [proj2:branch2] ... [--right-cmd=xxx] [--enter]
+#
+#   --right-cmd: 右侧窗格命令 (默认 qodercli)
+#   --enter:     创建后直接进入 Zellij session
 function req-create --description "创建需求工作区"
-    set -l name $argv[1]
+    # 解析标志参数
+    set -l enter false
+    set -l right_cmd ""
+    set -l args
+
+    set -l i 1
+    while test $i -le (count $argv)
+        set -l arg $argv[$i]
+        if test "$arg" = "--enter"
+            set enter true
+        else if string match -q -- '--right-cmd=*' "$arg"
+            set right_cmd (string split '=' "$arg")[2]
+        else
+            set args $args "$arg"
+        end
+        set i (math $i + 1)
+    end
+
+    # 默认右侧命令
+    if test -z "$right_cmd"
+        set right_cmd "qodercli"
+    end
+
+    # 取需求名
+    set -l name $args[1]
     if test -z "$name"
-        echo "用法: req-create <需求名>"
+        echo "用法:"
+        echo "  交互模式: req-create <需求名> [--right-cmd=xxx] [--enter]"
+        echo "  参数模式: req-create <需求名> <proj1:branch1> [proj2:branch2] ... [--right-cmd=xxx] [--enter]"
         return 1
     end
 
@@ -144,7 +177,7 @@ function req-create --description "创建需求工作区"
     echo "=== 创建需求: $name ==="
     echo
 
-    # 列出所有可用项目
+    # 列出可用项目
     set -l repos
     for d in "$REPOS_DIR"/*/
         test -d "$d/.git"
@@ -157,26 +190,35 @@ function req-create --description "创建需求工作区"
         return 1
     end
 
-    echo "可用项目（编号选择，逗号分隔多个，直接回车跳过交互）："
-    for i in (seq 1 (count $repos))
-        echo "  $i) $repos[$i]"
+    # 清理所有主仓库的失效 worktree 元数据（防止之前残留导致"分支已被占用"）
+    for repo in $repos
+        git -C "$REPOS_DIR/$repo" worktree prune 2>/dev/null
     end
-    echo
 
-    # 支持直接传参模式：req-create <name> <proj1:branch1> <proj2:branch2> ...
+    # === 选择项目: 参数模式 or 交互模式 ===
     set -l projects
-    if test (count $argv) -gt 1
-        for i in (seq 2 (count $argv))
-            set projects $projects $argv[$i]
+    if test (count $args) -gt 1
+        # 参数模式: 从命令行获取项目:分支
+        set -l i 2
+        while test $i -le (count $args)
+            set projects $projects $args[$i]
+            set i (math $i + 1)
         end
     else
-        # 交互式模式
-        read -p "选择项目 (如 1,2,3): " selected
-        if test -z "$selected"
+        # 交互模式
+        echo "可用项目（编号选择，逗号分隔多个）："
+        for i in (seq 1 (count $repos))
+            echo "  $i) $repos[$i]"
+        end
+        echo
+        set select_text ""
+        echo -n "选择项目 (如 1,2,3): "; read select_text
+        if test -z "$select_text"
             echo "未选择项目"
             rmdir "$reqdir"
             return 1
         end
+        set selected "$select_text"
 
         set -l indices (string split ',' $selected)
         for idx in $indices
@@ -189,8 +231,10 @@ function req-create --description "创建需求工作区"
 
             echo "项目: $proj_name"
             echo "  可用分支（最近）："
-            git -C "$REPOS_DIR/$proj_name" branch -a --sort=-committerdate 2>/dev/null | head -5 | string replace /^/  "    "
-            read -p "  输入分支名 (留空查看上方列表): " branch
+            git -C "$REPOS_DIR/$proj_name" branch -a --sort=-committerdate 2>/dev/null | head -5 | sed 's/^/    /'
+            set branch ""
+            echo -n "  输入分支名 (留空查看上方列表): "; read branch_text
+            set branch "$branch_text"
             if test -z "$branch"
                 echo "  分支不能为空，跳过 $proj_name"
                 continue
@@ -213,10 +257,23 @@ function req-create --description "创建需求工作区"
         set -l parts (string split ':' $entry)
         set -l proj $parts[1]
         set -l branch $parts[2]
+
+        # 如果没有指定分支（无冒号或冒号后为空），交互询问
+        if test -z "$branch"
+            echo "── 处理 $proj: 分支未指定 ──"
+            set branch ""
+            echo -n "  请输入分支名: "; read branch_text
+            set branch "$branch_text"
+            if test -z "$branch"
+                echo "  分支不能为空，跳过 $proj"
+                continue
+            end
+        end
+
         set -l repo_dir "$REPOS_DIR/$proj"
         set -l wt_dir "$reqdir/$proj"
 
-        echo "── 处理 $proj: $branch ──"
+        echo "── 处理 $proj: $branch ─"
 
         # 检查仓库是否存在
         if not test -d "$repo_dir/.git"
@@ -227,8 +284,51 @@ function req-create --description "创建需求工作区"
         # 检查分支是否存在
         set -l branch_exists (git -C "$repo_dir" branch -a 2>/dev/null | string match -r "(^\\*?\\s|remotes/origin/)$(string escape --style=regex $branch)")
         if test -z "$branch_exists"
-            echo "  分支 '$branch' 在 $proj 中不存在，跳过"
-            continue
+            echo "  分支 '$branch' 在 $proj 中不存在"
+            set create_branch ""
+            echo -n "是否基于 master 创建? [Y/n]: "; read create_branch
+            if test "$create_branch" = "n"; or test "$create_branch" = "N"
+                echo "跳过 $proj"
+                continue
+            end
+
+            # fetch origin master
+            echo "  拉取 origin/master..."
+            set -l fetch_output (git -C "$repo_dir" fetch origin master 2>&1)
+            set -l fetch_status $status
+            echo "$fetch_output" | string replace /^/  /
+            if test $fetch_status -ne 0
+                echo "fetch 失败，跳过 $proj"
+                continue
+            end
+
+            # 如果当前不在 master，先 stash 并 checkout
+            set -l current_branch (git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null | string trim)
+            if test "$current_branch" != "master"
+                echo "  切换到 master..."
+                git -C "$repo_dir" stash push -m "auto-stash by req-create" 2>/dev/null
+                set -l checkout_output (git -C "$repo_dir" checkout master 2>&1)
+                set -l checkout_status $status
+                echo "$checkout_output" | string replace /^/  /
+                if test $checkout_status -ne 0
+                    echo "切换到 master 失败，跳过 $proj"
+                    continue
+                end
+            end
+
+            # pull origin master to update local master
+            echo "  更新 master 到最新..."
+            git -C "$repo_dir" pull origin master 2>&1 | string replace /^/  /
+
+            # 创建新分支
+            echo "  创建新分支: $branch"
+            set -l branch_output (git -C "$repo_dir" branch "$branch" 2>&1)
+            set -l branch_status $status
+            echo "$branch_output" | string replace /^/  /
+            if test $branch_status -ne 0
+                echo "创建分支失败，跳过 $proj"
+                continue
+            end
         end
 
         # 检查主仓库是否正占用此分支
@@ -245,29 +345,19 @@ function req-create --description "创建需求工作区"
 
         # 创建 worktree
         echo "  创建 worktree..."
-        git -C "$repo_dir" worktree add "$wt_dir" "$branch" 2>&1 | string replace /^/  /
-        if test $status -ne 0
+        set -l worktree_output (git -C "$repo_dir" worktree add "$wt_dir" "$branch" 2>&1)
+        set -l worktree_status $status
+        echo "$worktree_output" | string replace /^/  /
+        if test $worktree_status -ne 0
             echo "  worktree 创建失败，可能分支已被占用"
             continue
         end
 
         set created_projects $created_projects "$proj:$branch"
 
-        # CoW 复制 node_modules
-        if test -d "$repo_dir/node_modules"
-            echo "  CoW 复制 node_modules（APFS 写时复制，几乎瞬时）..."
-            cp -a "$repo_dir/node_modules" "$wt_dir/node_modules" 2>&1 | string replace /^/  /
-            if test $status -eq 0
-                echo "  node_modules 复制完成，开始 tnpm install..."
-                cd "$wt_dir"; and tnpm install --prefer-offline 2>&1 | tail -3 | string replace /^/  /; cd -
-            else
-                echo "  node_modules 复制失败，执行完整 tnpm install..."
-                cd "$wt_dir"; and tnpm install 2>&1 | tail -3 | string replace /^/  /; cd -
-            end
-        else
-            echo "  主仓库无 node_modules，执行完整 tnpm install..."
-            cd "$wt_dir"; and tnpm install 2>&1 | tail -3 | string replace /^/  /; cd -
-        end
+        # tnpm install（优先使用本地缓存，比 cp 拷贝更快）
+        echo "  安装依赖（使用本地缓存，通常 1-2 秒）..."
+        cd "$wt_dir"; and tnpm install --prefer-offline 2>&1 | tail -6; cd -
 
         # 拼接 profile JSON 条目
         if test (count $profile_entries) -eq 0
@@ -287,7 +377,7 @@ function req-create --description "创建需求工作区"
     end
 
     # 写入 profile JSON
-    set -l profile_json '{ "name" : "'$name'", "projects" : { '"(string join ', ' $profile_entries)"' } }'
+    set -l profile_json '{ "name" : "'$name'", "rightPaneCommand" : "'$right_cmd'", "projects" : { '"(string join ', ' $profile_entries)"' } }'
     echo "$profile_json" > "$profile_path"
     echo "✓ profile 已写入: $profile_path"
 
@@ -297,18 +387,30 @@ function req-create --description "创建需求工作区"
     mkdir -p "$layout_dir"
 
     echo 'layout {' > "$layout_path"
-    echo '    pane size=2 borderless=true {' >> "$layout_path"
+    echo '    pane size="5%" borderless=true {' >> "$layout_path"
     echo '        plugin location="zellij:compact-bar"' >> "$layout_path"
     echo '    }' >> "$layout_path"
     echo '    pane split_direction="horizontal" {' >> "$layout_path"
+    echo '        pane split_direction="vertical" size="70%" {' >> "$layout_path"
+    echo '            pane split_direction="horizontal" size="70%" {' >> "$layout_path"
     for entry in $created_projects
         set -l parts (string split ':' $entry)
         set -l proj $parts[1]
-        echo "        pane name=\"$proj\" command=\"nvim\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
+        echo "                pane name=\"$proj\" command=\"nvim\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
     end
-    echo '    }' >> "$layout_path"
-    echo '    pane size=30 {' >> "$layout_path"
-    echo "        pane name=\"terminal\" { cwd \"$reqdir\"; }" >> "$layout_path"
+    echo '            }' >> "$layout_path"
+    echo '            pane size="30%" {' >> "$layout_path"
+    for entry in $created_projects
+        set -l parts (string split ':' $entry)
+        set -l proj $parts[1]
+        echo "                pane name=\"$proj-dev\" command=\"fish\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
+    end
+    echo '                pane name="terminal" command="fish" { cwd "'$reqdir'"; }' >> "$layout_path"
+    echo '            }' >> "$layout_path"
+    echo '        }' >> "$layout_path"
+    echo '        pane size="30%" {' >> "$layout_path"
+    echo "            pane name=\"tool\" command=\"$right_cmd\" { cwd \"$reqdir\"; }" >> "$layout_path"
+    echo '        }' >> "$layout_path"
     echo '    }' >> "$layout_path"
     echo '}' >> "$layout_path"
     echo "✓ layout 已写入: $layout_path"
@@ -318,17 +420,16 @@ function req-create --description "创建需求工作区"
     echo "  工作区: $reqdir"
     echo "  Profile: $profile_path"
     echo "  Layout: $layout_path"
-    echo
-    echo "下一步：在普通终端里执行"
-    echo "    zj $name"
-    echo
-    echo "  ✓ 自动创建 Zellij session"
-    echo "  ✓ 自动打开各项目的 nvim pane"
-    echo "  ✓ 自动打开终端 pane 供你启 dev server"
-    echo
-    echo "创建后切换需求的方式："
-    echo "  Alt-z → w → 选 req-$name"
-    echo "  或在任意终端执行：zj $name"
+
+    # 如果指定了 --enter，自动进入 session
+    if test "$enter" = "true"
+        echo
+        echo "正在进入 session '$name'..."
+        zj $name
+    else
+        echo
+        echo "下一步：zj $name"
+    end
 end
 
 # req-remove: 删除需求工作区
@@ -349,7 +450,8 @@ function req-remove --description "删除需求工作区"
         return 1
     end
 
-    read -p "确认删除需求 '$name'？(y/N) " confirm
+    echo -n "确认删除需求 '$name'？(y/N) "; read confirm
+    echo
     if test "$confirm" != "y"; and test "$confirm" != "Y"
         echo "取消"
         return 0
@@ -366,6 +468,7 @@ function req-remove --description "删除需求工作区"
         if test -d "$repo/.git"
             echo "移除 worktree: $proj"
             git -C "$repo" worktree remove "$wt" --force 2>/dev/null
+            git -C "$repo" worktree prune 2>/dev/null
         end
     end
 
