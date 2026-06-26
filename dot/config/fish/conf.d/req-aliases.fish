@@ -50,7 +50,7 @@ function zj --description "切换或创建需求 Zellij session"
     # 无参数：列出所有需求 session
     if test -z "$name"
         echo "需求 sessions:"
-        zellij list-sessions 2>/dev/null | grep "^req-" | string replace /^/  /
+        zellij list-sessions 2>/dev/null | grep "^req-" | string replace -r '^' '  '
         return 0
     end
 
@@ -84,6 +84,11 @@ function zj --description "切换或创建需求 Zellij session"
         echo "检测到你在 Zellij session 内部，正在 detach..."
         zellij action detach >/dev/null 2>/dev/null
         sleep 0.5
+    end
+
+    # attach 前检测依赖漂移
+    if test -d "$reqdir"
+        __req_check_deps_drift "$reqdir"
     end
 
     # 目标 session 已存在 → 直接 attach
@@ -122,25 +127,32 @@ function zj --description "切换或创建需求 Zellij session"
     zellij attach "$session"
 end
 
-# req-create: 创建需求工作区（worktree + CoW node_modules + profile + layout + whistle）
+# req-create: 创建需求工作区 (worktree + profile + layout)
 #
 # 用法:
-#   交互模式:  req-create <需求名> [--right-cmd=xxx] [--enter]
-#   参数模式:  req-create <需求名> <proj1:branch1> [proj2:branch2] ... [--right-cmd=xxx] [--enter]
+#   交互模式:  req-create <需求名> [--right-cmd=xxx] [--no-enter]
+#   参数模式:  req-create <需求名> <proj1:branch1> [proj2:branch2] ... [--right-cmd=xxx] [--no-enter]
 #
 #   --right-cmd: 右侧窗格命令 (默认 qodercli)
-#   --enter:     创建后直接进入 Zellij session
+#   --no-enter:  创建后不自动进入 session (默认会自动进入)
+#
+# 布局结构:
+#   顶部 compact-bar (5%)
+#   左侧 70%:
+#     上方: 各项目的 nvim 编辑窗格 (横向排列)
+#     下方: 各项目的 dev server (stacked 切换)
+#   右侧 30%: tool pane (qodercli 或指定命令)
 function req-create --description "创建需求工作区"
-    # 解析标志参数
-    set -l enter false
+    # 解析标志参数 (--enter 默认 true，可用 --no-enter 禁用)
+    set -l enter true
     set -l right_cmd ""
     set -l args
 
     set -l i 1
     while test $i -le (count $argv)
         set -l arg $argv[$i]
-        if test "$arg" = "--enter"
-            set enter true
+        if test "$arg" = "--no-enter"
+            set enter false
         else if string match -q -- '--right-cmd=*' "$arg"
             set right_cmd (string split '=' "$arg")[2]
         else
@@ -148,7 +160,6 @@ function req-create --description "创建需求工作区"
         end
         set i (math $i + 1)
     end
-
     # 默认右侧命令
     if test -z "$right_cmd"
         set right_cmd "qodercli"
@@ -158,8 +169,8 @@ function req-create --description "创建需求工作区"
     set -l name $args[1]
     if test -z "$name"
         echo "用法:"
-        echo "  交互模式: req-create <需求名> [--right-cmd=xxx] [--enter]"
-        echo "  参数模式: req-create <需求名> <proj1:branch1> [proj2:branch2] ... [--right-cmd=xxx] [--enter]"
+        echo "  交互模式: req-create <需求名> [--right-cmd=xxx] [--no-enter]"
+        echo "  参数模式: req-create <需求名> <proj1:branch1> [proj2:branch2] ... [--right-cmd=xxx] [--no-enter]"
         return 1
     end
 
@@ -296,7 +307,7 @@ function req-create --description "创建需求工作区"
             echo "  拉取 origin/master..."
             set -l fetch_output (git -C "$repo_dir" fetch origin master 2>&1)
             set -l fetch_status $status
-            echo "$fetch_output" | string replace /^/  /
+            echo "$fetch_output" | string replace -r '^' '  '
             if test $fetch_status -ne 0
                 echo "fetch 失败，跳过 $proj"
                 continue
@@ -309,7 +320,7 @@ function req-create --description "创建需求工作区"
                 git -C "$repo_dir" stash push -m "auto-stash by req-create" 2>/dev/null
                 set -l checkout_output (git -C "$repo_dir" checkout master 2>&1)
                 set -l checkout_status $status
-                echo "$checkout_output" | string replace /^/  /
+                echo "$checkout_output" | string replace -r '^' '  '
                 if test $checkout_status -ne 0
                     echo "切换到 master 失败，跳过 $proj"
                     continue
@@ -318,13 +329,13 @@ function req-create --description "创建需求工作区"
 
             # pull origin master to update local master
             echo "  更新 master 到最新..."
-            git -C "$repo_dir" pull origin master 2>&1 | string replace /^/  /
+            git -C "$repo_dir" pull origin master 2>&1 | string replace -r '^' '  '
 
             # 创建新分支
             echo "  创建新分支: $branch"
             set -l branch_output (git -C "$repo_dir" branch "$branch" 2>&1)
             set -l branch_status $status
-            echo "$branch_output" | string replace /^/  /
+            echo "$branch_output" | string replace -r '^' '  '
             if test $branch_status -ne 0
                 echo "创建分支失败，跳过 $proj"
                 continue
@@ -336,7 +347,7 @@ function req-create --description "创建需求工作区"
         if test "$main_branch" = "$branch"
             echo "  主仓库正在占用分支 '$branch'，尝试 stash + checkout master..."
             git -C "$repo_dir" stash push -m "auto-stash by req-create" 2>/dev/null
-            git -C "$repo_dir" checkout master 2>&1 | string replace /^/  /
+            git -C "$repo_dir" checkout master 2>&1 | string replace -r '^' '  '
             if test $status -ne 0
                 echo "  无法切换主仓库分支，跳过 $proj"
                 continue
@@ -347,7 +358,7 @@ function req-create --description "创建需求工作区"
         echo "  创建 worktree..."
         set -l worktree_output (git -C "$repo_dir" worktree add "$wt_dir" "$branch" 2>&1)
         set -l worktree_status $status
-        echo "$worktree_output" | string replace /^/  /
+        echo "$worktree_output" | string replace -r '^' '  '
         if test $worktree_status -ne 0
             echo "  worktree 创建失败，可能分支已被占用"
             continue
@@ -355,15 +366,16 @@ function req-create --description "创建需求工作区"
 
         set created_projects $created_projects "$proj:$branch"
 
-        # tnpm install（优先使用本地缓存，比 cp 拷贝更快）
-        echo "  安装依赖（使用本地缓存，通常 1-2 秒）..."
-        cd "$wt_dir"; and tnpm install --prefer-offline 2>&1 | tail -6; cd -
+        # 依赖处理：软链到主仓库 node_modules
+        # 优点：秒级完成、0 磁盘开销；缺点：worktree 内不能改依赖（要改请用 req-isolate）
+        echo "  链接依赖..."
+        __req_link_node_modules "$repo_dir" "$wt_dir"
 
         # 拼接 profile JSON 条目
         if test (count $profile_entries) -eq 0
-            set profile_entries "\"$proj\" : {\"branch\":\"$branch\",\"mode\":\"local\"}"
+            set profile_entries "\"$proj\" : {\"branch\":\"$branch\",\"mode\":\"link\"}"
         else
-            set profile_entries $profile_entries "\"$proj\" : {\"branch\":\"$branch\",\"mode\":\"local\"}"
+            set profile_entries $profile_entries "\"$proj\" : {\"branch\":\"$branch\",\"mode\":\"link\"}"
         end
 
         echo "  ✓ $proj 完成"
@@ -382,35 +394,34 @@ function req-create --description "创建需求工作区"
     echo "✓ profile 已写入: $profile_path"
 
     # 生成 Zellij layout
+    # 结构:
+    #   顶部 compact-bar (5%)
+    #   左侧 40%: 所有项目的 nvim + 终端，统一 stacked
+    #   右侧 60%: tool pane (qodercli)
     set -l layout_dir "$HOME/Documents/workspace/.req/reqs/$name"
     set -l layout_path "$layout_dir/layout.kdl"
     mkdir -p "$layout_dir"
 
     echo 'layout {' > "$layout_path"
-    echo '    pane size="5%" borderless=true {' >> "$layout_path"
+    echo '    pane size=1 borderless=true {' >> "$layout_path"
     echo '        plugin location="zellij:compact-bar"' >> "$layout_path"
     echo '    }' >> "$layout_path"
-    echo '    pane split_direction="horizontal" {' >> "$layout_path"
-    echo '        pane split_direction="vertical" size="70%" {' >> "$layout_path"
-    echo '            pane split_direction="horizontal" size="70%" {' >> "$layout_path"
+    echo '    pane split_direction="vertical" {' >> "$layout_path"
+    # 左侧 40% - 所有 pane 统一 stacked
+    echo '        pane size="40%" stacked=true {' >> "$layout_path"
     for entry in $created_projects
         set -l parts (string split ':' $entry)
         set -l proj $parts[1]
-        echo "                pane name=\"$proj\" command=\"nvim\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
+        echo "            pane name=\"$proj\" command=\"nvim\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
     end
-    echo '            }' >> "$layout_path"
-    echo '            pane size="30%" {' >> "$layout_path"
     for entry in $created_projects
         set -l parts (string split ':' $entry)
         set -l proj $parts[1]
-        echo "                pane name=\"$proj-dev\" command=\"fish\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
+        echo "            pane name=\"$proj-term\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
     end
-    echo '                pane name="terminal" command="fish" { cwd "'$reqdir'"; }' >> "$layout_path"
-    echo '            }' >> "$layout_path"
     echo '        }' >> "$layout_path"
-    echo '        pane size="30%" {' >> "$layout_path"
-    echo "            pane name=\"tool\" command=\"$right_cmd\" { cwd \"$reqdir\"; }" >> "$layout_path"
-    echo '        }' >> "$layout_path"
+    # 右侧 30% 工具 pane
+    echo '        pane name="tool" command="'$right_cmd'" { cwd "'$reqdir'"; }' >> "$layout_path"
     echo '    }' >> "$layout_path"
     echo '}' >> "$layout_path"
     echo "✓ layout 已写入: $layout_path"
@@ -459,6 +470,7 @@ function req-remove --description "删除需求工作区"
 
     echo "删除 Zellij session: $session"
     zellij kill-session "$session" 2>/dev/null
+    zellij delete-session "$session" --force 2>/dev/null
 
     # 逐个移除 worktree
     for wt in "$reqdir"/*/
@@ -489,4 +501,149 @@ function req-remove --description "删除需求工作区"
     end
 
     echo "✓ 需求 '$name' 已清理"
+end
+
+# === 内部 helper：把 worktree 的 node_modules 软链到主仓库 ===
+# 参数: $repo_dir(主仓库) $wt_dir(worktree 目录)
+function __req_link_node_modules --description "软链 worktree 的 node_modules 到主仓库"
+    set -l repo_dir $argv[1]
+    set -l wt_dir $argv[2]
+
+    # 主仓库无 node_modules → 先安装
+    if not test -d "$repo_dir/node_modules"
+        echo "    主仓库无 node_modules，先安装..."
+        pushd "$repo_dir" >/dev/null
+        tnpm install --prefer-offline 2>&1 | tail -3 | string replace -r '^' '    '
+        popd >/dev/null
+    end
+
+    # worktree 内若已有实体 node_modules，跳过避免覆盖
+    if test -d "$wt_dir/node_modules"; and not test -L "$wt_dir/node_modules"
+        echo "    已存在实体 node_modules，跳过软链"
+        return 0
+    end
+
+    # 移除旧软链（若有）
+    test -L "$wt_dir/node_modules"; and rm "$wt_dir/node_modules"
+
+    ln -s "$repo_dir/node_modules" "$wt_dir/node_modules"
+    echo "    ✓ 软链: $wt_dir/node_modules -> $repo_dir/node_modules"
+end
+
+# === 内部 helper：检测 worktree 依赖是否相对主仓库漂移 ===
+# 参数: $reqdir
+function __req_check_deps_drift --description "检测 worktree 的 lock 是否与主仓库不同"
+    set -l reqdir $argv[1]
+    set -l drifted
+
+    for wt in "$reqdir"/*/
+        test -d "$wt"; or continue
+        set -l proj (basename "$wt")
+        set -l repo "$REPOS_DIR/$proj"
+        test -d "$repo/.git"; or continue
+
+        # 软链模式无需检测（共享 node_modules）
+        if test -L "$wt/node_modules"
+            for lock in package-lock.json yarn.lock pnpm-lock.yaml
+                if test -f "$wt/$lock"; and test -f "$repo/$lock"
+                    set -l h1 (shasum "$wt/$lock" 2>/dev/null | string split ' ')[1]
+                    set -l h2 (shasum "$repo/$lock" 2>/dev/null | string split ' ')[1]
+                    if test "$h1" != "$h2"
+                        set drifted $drifted "$proj($lock)"
+                    end
+                end
+            end
+        end
+    end
+
+    if test (count $drifted) -gt 0
+        echo
+        echo "⚠ 以下 worktree 的 lock 与主仓库不一致，依赖可能错位："
+        for d in $drifted
+            echo "    - $d"
+        end
+        echo "  处理方式："
+        echo "    req-isolate <需求名> <项目名>   # 升级为独立 node_modules"
+        echo "    git checkout package-lock.json  # 放弃 worktree 内的 lock 修改"
+        echo
+    end
+end
+
+# === req-isolate: 把 worktree 从软链升级为独立 node_modules ===
+function req-isolate --description "把 worktree 的 node_modules 切换为独立安装"
+    set -l name $argv[1]
+    set -l proj $argv[2]
+    if test -z "$name"; or test -z "$proj"
+        echo "用法: req-isolate <需求名> <项目名>"
+        return 1
+    end
+
+    set -l wt_dir "$REQS_DIR/$name/$proj"
+    if not test -d "$wt_dir"
+        echo "worktree 不存在: $wt_dir"
+        return 1
+    end
+
+    # 已经是实体目录则跳过
+    if test -d "$wt_dir/node_modules"; and not test -L "$wt_dir/node_modules"
+        echo "$proj 已经是独立模式，无需 isolate"
+        return 0
+    end
+
+    # 移除软链
+    if test -L "$wt_dir/node_modules"
+        rm "$wt_dir/node_modules"
+        echo "已移除软链: $wt_dir/node_modules"
+    end
+
+    echo "在 $wt_dir 执行 tnpm install..."
+    pushd "$wt_dir" >/dev/null
+    tnpm install --prefer-offline
+    set -l rc $status
+    popd >/dev/null
+
+    if test $rc -eq 0
+        echo "✓ $proj 已切换为独立模式"
+    else
+        echo "✗ tnpm install 失败 (rc=$rc)"
+        return $rc
+    end
+end
+
+# === req-relink: 把独立 node_modules 切回软链 ===
+function req-relink --description "把 worktree 的 node_modules 切回软链共享"
+    set -l name $argv[1]
+    set -l proj $argv[2]
+    if test -z "$name"; or test -z "$proj"
+        echo "用法: req-relink <需求名> <项目名>"
+        return 1
+    end
+
+    set -l wt_dir "$REQS_DIR/$name/$proj"
+    set -l repo_dir "$REPOS_DIR/$proj"
+    if not test -d "$wt_dir"
+        echo "worktree 不存在: $wt_dir"
+        return 1
+    end
+    if not test -d "$repo_dir/.git"
+        echo "主仓库不存在: $repo_dir"
+        return 1
+    end
+
+    # 已经是软链则跳过
+    if test -L "$wt_dir/node_modules"
+        echo "$proj 已经是软链模式，无需 relink"
+        return 0
+    end
+
+    if test -d "$wt_dir/node_modules"
+        echo -n "将删除 $wt_dir/node_modules 切回软链，确认？(y/N) "; read confirm
+        if test "$confirm" != "y"; and test "$confirm" != "Y"
+            echo "取消"
+            return 0
+        end
+        rm -rf "$wt_dir/node_modules"
+    end
+
+    __req_link_node_modules "$repo_dir" "$wt_dir"
 end
