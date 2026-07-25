@@ -16,6 +16,12 @@ info() { printf "${BLUE}[INFO]${NC} %s\n" "$1"; }
 success() { printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"; }
 error() { printf "${RED}[ERROR]${NC} %s\n" "$1"; }
 
+# 检测 Docker/Podman 等容器环境
+is_container() {
+  [[ -f /.dockerenv || -f /run/.containerenv ]] && return 0
+  [[ -r /proc/1/cgroup ]] && grep -qaE '(docker|containerd|kubepods|podman)' /proc/1/cgroup
+}
+
 # brew镜像
 set_brew_mirrors() {
   info "正在配置 Homebrew 国内镜像源..."
@@ -81,6 +87,11 @@ install_brew() {
   # 提前设置禁止更新的环境变量
   export HOMEBREW_NO_AUTO_UPDATE=1
 
+  if is_container; then
+    info "检测到容器环境，跳过 Homebrew 安装。"
+    return
+  fi
+
   if ! command -v brew &>/dev/null; then
     info "Homebrew 未安装，正在通过镜像加速安装..."
     install_linux_dependencies || return 1
@@ -107,8 +118,24 @@ install_brew() {
   fi
 }
 
+# 容器内使用系统包管理器安装基础命令行工具
+setup_container_software() {
+  if ! command -v apt-get &>/dev/null; then
+    error "当前容器不是 Ubuntu/Debian，无法自动安装依赖。"
+    return 1
+  fi
+
+  info "正在通过 apt 安装容器所需的基础工具..."
+  apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y neovim fish git fzf ripgrep curl
+}
+
 # 2. 安装软件
 setup_software() {
+  if is_container; then
+    setup_container_software
+    return
+  fi
+
   info "正在通过 Homebrew 安装软件..."
   local apps=(neovim wezterm fish starship fnm git fzf ripgrep)
   for app in "${apps[@]}"; do
@@ -122,6 +149,11 @@ setup_software() {
 
 # 3. 安装 Docker
 setup_docker() {
+  if is_container; then
+    info "检测到容器环境，跳过 Docker 守护进程安装。"
+    return
+  fi
+
   case "$OS" in
     Darwin)
       if brew list --cask docker-desktop &>/dev/null; then
@@ -258,6 +290,11 @@ initialize_repo() {
 
 # 7. 设置 fish 为默认 shell
 setup_fish_as_default() {
+  if is_container; then
+    info "检测到容器环境，跳过默认 Shell 修改。"
+    return
+  fi
+
   local fish_path
   fish_path=$(which fish)
 
@@ -288,7 +325,7 @@ setup_fish_as_default() {
 main() {
   # 确保网络环境能连接 GitHub
   install_brew || exit 1
-  setup_software
+  setup_software || exit 1
   setup_docker || exit 1
 
   # 如果当前不在 dotfiles 目录，则初始化

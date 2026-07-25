@@ -33,6 +33,8 @@ curl --http1.1 --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/dotfiles
 
 Ubuntu/Debian 安装 Docker 后需要重新登录，才能无需 `sudo` 执行 `docker`。
 
+在 Ubuntu/Debian Docker 容器内运行时，脚本会自动跳过 Homebrew、Docker 守护进程和默认 Shell 修改，改用 `apt` 安装 Neovim、Fish、Git、FZF、Ripgrep 与 Curl 等基础工具。
+
 ### 脚本代码思路
 
 1. 查找`dotfiles/dot/`下的所有文件(夹)
