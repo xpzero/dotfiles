@@ -16,8 +16,9 @@ info() { printf "${BLUE}[INFO]${NC} %s\n" "$1"; }
 success() { printf "${GREEN}[SUCCESS]${NC} %s\n" "$1"; }
 error() { printf "${RED}[ERROR]${NC} %s\n" "$1"; }
 
-# 检测 Docker/Podman 等容器环境
+# 检测 Docker/Podman 等容器环境。Homebrew 不支持 Linux root 用户，因此 root 也走 apt 分支。
 is_container() {
+  [[ "$OS" == "Linux" && "$(id -u)" -eq 0 ]] && return 0
   [[ -f /.dockerenv || -f /run/.containerenv ]] && return 0
   [[ -r /proc/1/cgroup ]] && grep -qaE '(docker|containerd|kubepods|podman)' /proc/1/cgroup
 }
