@@ -1,0 +1,11 @@
+node_modules
+configstore
+.DS_Store
+clash
+iterm2
+coc
+opencode
+gh
+git
+cagent
+dot/config/fish/fish_variables

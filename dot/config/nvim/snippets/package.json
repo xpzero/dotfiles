@@ -1,0 +1,18 @@
+{
+  "contributes": {
+    "snippets": [
+      {
+        "language": [
+          "all"
+        ],
+        "path": "./console.json"
+      },
+      {
+        "language": [
+          "typescriptreact"
+        ],
+        "path": "./tsx.json"
+      }
+    ]
+  }
+}
