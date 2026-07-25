@@ -1,11 +1,12 @@
 set -gx EDITOR nvim
 set -gx PATH $PATH /opt/homebrew/bin
 # 在文件末尾添加以下镜像配置（以清华源为例）
-set -gx HOMEBREW_API_DOMAIN "mirrors.tuna.tsinghua.edu.cn"
-set -gx HOMEBREW_BOTTLE_DOMAIN "mirrors.tuna.tsinghua.edu.cn"
-set -gx HOMEBREW_BREW_GIT_REMOTE "mirrors.tuna.tsinghua.edu.cn"
-set -gx HOMEBREW_CORE_GIT_REMOTE "mirrors.tuna.tsinghua.edu.cn"
-set -gx HOMEBREW_PIP_INDEX_URL "pypi.tuna.tsinghua.edu.cn"
+set -gx HOMEBREW_API_DOMAIN "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+set -gx HOMEBREW_BOTTLE_DOMAIN "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+set -gx HOMEBREW_BREW_GIT_REMOTE "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+set -gx HOMEBREW_CORE_GIT_REMOTE "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+set -gx HOMEBREW_PIP_INDEX_URL "https://pypi.tuna.tsinghua.edu.cn/simple"
+set -gx UV_INDEX_URL "https://pypi.tuna.tsinghua.edu.cn/simple"
 # 禁止 Homebrew 自动更新
 set -gx HOMEBREW_NO_AUTO_UPDATE 1
 
@@ -54,3 +55,11 @@ alias gst='git status'
 
 # opencode
 fish_add_path "$HOME/.opencode/bin"
+fish_add_path --move /opt/homebrew/bin
+
+# pnpm
+set -gx PNPM_HOME "$HOME/Library/pnpm"
+if not string match -q -- "$PNPM_HOME/bin" $PATH
+    set -gx PATH "$PNPM_HOME/bin" $PATH
+end
+# pnpm end

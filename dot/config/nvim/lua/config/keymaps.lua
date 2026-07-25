@@ -27,3 +27,8 @@ end, { desc = "Go to upper window/pane" })
 map("n", "<C-l>", function()
   require("smart-splits").move_cursor_right()
 end, { desc = "Go to right window/pane" })
+
+map("n", "<leader>rp", function()
+  vim.cmd.write()
+  Snacks.terminal({ "uv", "run", "python", vim.api.nvim_buf_get_name(0) }, { cwd = LazyVim.root() })
+end, { desc = "Run Python File" })
