@@ -20,14 +20,14 @@ set_brew_mirrors() {
   info "正在配置 Homebrew 国内镜像源..."
 
   # 1. 设置环境变量，加速 API 和 Bottles 下载
-  export HOMEBREW_API_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
-  export HOMEBREW_BREW_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
-  export HOMEBREW_CORE_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
-  export HOMEBREW_BOTTLE_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
+  export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+  export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+  export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+  export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
 
   # 2. 如果已经安装过，同步重置远程仓库地址 (可选)
   if command -v brew &>/dev/null; then
-    git -C "$(brew --repo)" remote set-url origin mirrors.tuna.tsinghua.edu.cn
+    git -C "$(brew --repo)" remote set-url origin "$HOMEBREW_BREW_GIT_REMOTE"
   fi
 }
 
@@ -39,8 +39,16 @@ install_brew() {
   if ! command -v brew &>/dev/null; then
     info "Homebrew 未安装，正在通过镜像加速安装..."
 
-    # 使用国内镜像脚本安装（如：中科大提供的安装工具或清华大学提供的脚本）
-    /bin/bash -c "$(curl -fsSL raw.githubusercontent.com)"
+    local installer
+    if ! installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh); then
+      error "无法下载 Homebrew 安装脚本。"
+      return 1
+    fi
+
+    if ! /bin/bash -c "$installer"; then
+      error "Homebrew 安装失败。"
+      return 1
+    fi
 
     # 激活环境变量
     if [[ "$(uname -m)" == "arm64" ]]; then
@@ -91,17 +99,16 @@ backup_and_link() {
 install_dotfiles() {
   info "开始安装 Dotfiles..."
 
-  # 确保在仓库根目录执行
-  local current_dir=$(pwd)
-
   for dir in "${FILES_TO_SYMLINK[@]}"; do
     if [[ ! -d "$dir" ]]; then continue; fi
 
     # 遍历目录下的所有文件（排除 . 和 ..）
-    find "$dir" -maxdepth 1 -mindepth 1 | while read -r path; do
+    find "$dir" -maxdepth 1 -mindepth 1 -print0 | while IFS= read -r -d '' path; do
       local filename=$(basename "$path")
       local target="$HOME/.$filename"
-      backup_and_link "$(realpath "$path")" "$target"
+      local source_dir
+      source_dir=$(cd "$(dirname "$path")" && pwd -P)
+      backup_and_link "$source_dir/$filename" "$target"
     done
   done
 }
@@ -199,7 +206,7 @@ setup_fish_as_default() {
 
 main() {
   # 确保网络环境能连接 GitHub
-  install_brew
+  install_brew || exit 1
   setup_software
 
   # 如果当前不在 dotfiles 目录，则初始化
