@@ -78,7 +78,17 @@ setup_software() {
   done
 }
 
-# 3. 备份与符号链接逻辑
+# 3. 安装 Docker Desktop（包含 Docker 守护进程和 CLI）
+setup_docker() {
+  if brew list --cask docker-desktop &>/dev/null; then
+    info "Docker Desktop 已安装，跳过。"
+  else
+    info "正在安装 Docker Desktop..."
+    brew install --cask docker-desktop
+  fi
+}
+
+# 4. 备份与符号链接逻辑
 backup_and_link() {
   local src=$1
   local dest=$2
@@ -95,7 +105,7 @@ backup_and_link() {
   success "已链接: $dest"
 }
 
-# 4. 执行安装 Dotfiles
+# 5. 执行安装 Dotfiles
 install_dotfiles() {
   info "开始安装 Dotfiles..."
 
@@ -113,7 +123,7 @@ install_dotfiles() {
   done
 }
 
-# 5. 初始化仓库 (如果需要)
+# 6. 初始化仓库 (如果需要)
 # 获取远程分支并选择
 choose_branch_and_clone() {
   local url=$1
@@ -175,7 +185,7 @@ initialize_repo() {
   fi
 }
 
-# 6. 设置 fish 为默认 shell
+# 7. 设置 fish 为默认 shell
 setup_fish_as_default() {
   local fish_path
   fish_path=$(which fish)
@@ -208,6 +218,7 @@ main() {
   # 确保网络环境能连接 GitHub
   install_brew || exit 1
   setup_software
+  setup_docker || exit 1
 
   # 如果当前不在 dotfiles 目录，则初始化
   if [[ "$(basename "$(pwd)")" != "dotfiles" ]]; then
