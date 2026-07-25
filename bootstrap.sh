@@ -3,6 +3,7 @@
 # 基础配置
 REPO_URL="https://github.com/xpzero/dotfiles.git"
 FILES_TO_SYMLINK=("dot")
+OS=$(uname -s)
 
 # 颜色定义
 GREEN='\033[0;32m'
@@ -31,6 +32,50 @@ set_brew_mirrors() {
   fi
 }
 
+# 安装 Linuxbrew 所需的系统依赖
+install_linux_dependencies() {
+  if [[ "$OS" != "Linux" ]]; then
+    return
+  fi
+
+  if ! command -v apt-get &>/dev/null; then
+    error "当前仅支持在 Ubuntu/Debian 上自动安装 Linuxbrew。"
+    return 1
+  fi
+
+  info "正在安装 Linuxbrew 依赖..."
+  sudo apt-get update && sudo apt-get install -y build-essential procps curl file git
+}
+
+# 加载 Homebrew 环境
+load_brew() {
+  local brew_path
+
+  case "$OS" in
+    Darwin)
+      if [[ "$(uname -m)" == "arm64" ]]; then
+        brew_path="/opt/homebrew/bin/brew"
+      else
+        brew_path="/usr/local/bin/brew"
+      fi
+      ;;
+    Linux)
+      brew_path="/home/linuxbrew/.linuxbrew/bin/brew"
+      ;;
+    *)
+      error "不支持的操作系统: $OS"
+      return 1
+      ;;
+  esac
+
+  if [[ ! -x "$brew_path" ]]; then
+    error "未找到 Homebrew: $brew_path"
+    return 1
+  fi
+
+  eval "$("$brew_path" shellenv)"
+}
+
 # 1. 自动安装 Homebrew
 install_brew() {
   # 提前设置禁止更新的环境变量
@@ -38,9 +83,10 @@ install_brew() {
 
   if ! command -v brew &>/dev/null; then
     info "Homebrew 未安装，正在通过镜像加速安装..."
+    install_linux_dependencies || return 1
 
     local installer
-    if ! installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh); then
+    if ! installer=$(curl --http1.1 --retry 5 --retry-all-errors --retry-delay 2 -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh); then
       error "无法下载 Homebrew 安装脚本。"
       return 1
     fi
@@ -50,17 +96,13 @@ install_brew() {
       return 1
     fi
 
-    # 激活环境变量
-    if [[ "$(uname -m)" == "arm64" ]]; then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    else
-      eval "$(/usr/local/bin/brew shellenv)"
-    fi
+    load_brew || return 1
 
     # 安装完成后立即配置镜像
     set_brew_mirrors
   else
     info "Homebrew 已存在。"
+    load_brew || return 1
     set_brew_mirrors
   fi
 }
@@ -78,14 +120,43 @@ setup_software() {
   done
 }
 
-# 3. 安装 Docker Desktop（包含 Docker 守护进程和 CLI）
+# 3. 安装 Docker
 setup_docker() {
-  if brew list --cask docker-desktop &>/dev/null; then
-    info "Docker Desktop 已安装，跳过。"
-  else
-    info "正在安装 Docker Desktop..."
-    brew install --cask docker-desktop
-  fi
+  case "$OS" in
+    Darwin)
+      if brew list --cask docker-desktop &>/dev/null; then
+        info "Docker Desktop 已安装，跳过。"
+      else
+        info "正在安装 Docker Desktop..."
+        brew install --cask docker-desktop
+      fi
+      ;;
+    Linux)
+      if command -v docker &>/dev/null; then
+        info "Docker 已安装，跳过。"
+        return
+      fi
+
+      if ! command -v apt-get &>/dev/null; then
+        error "当前仅支持在 Ubuntu/Debian 上自动安装 Docker Engine。"
+        return 1
+      fi
+
+      info "正在安装 Docker Engine..."
+      sudo apt-get update && sudo apt-get install -y docker.io || return 1
+      sudo usermod -aG docker "$USER" || return 1
+
+      if command -v systemctl &>/dev/null; then
+        sudo systemctl enable --now docker || info "Docker 服务未自动启动，请手动启动 docker 服务。"
+      fi
+
+      info "Docker 已安装。重新登录后可免 sudo 使用 docker。"
+      ;;
+    *)
+      error "不支持的操作系统: $OS"
+      return 1
+      ;;
+  esac
 }
 
 # 4. 备份与符号链接逻辑

@@ -23,9 +23,15 @@
 
 ## 安装
 
+支持 macOS 和 Ubuntu/Debian。macOS 安装 Docker Desktop；Ubuntu/Debian 安装 Docker Engine。
+
 ```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/xpzero/dotfiles/refs/heads/main/bootstrap.sh)"
+curl --http1.1 --retry 5 --retry-all-errors --retry-delay 2 -fsSLo /tmp/dotfiles-bootstrap.sh \
+  https://raw.githubusercontent.com/xpzero/dotfiles/refs/heads/main/bootstrap.sh && \
+/bin/bash /tmp/dotfiles-bootstrap.sh
 ```
+
+Ubuntu/Debian 安装 Docker 后需要重新登录，才能无需 `sudo` 执行 `docker`。
 
 ### 脚本代码思路
 
