@@ -1,4 +1,5 @@
 # Zellij aliases
+alias zj='zellij'
 alias za='zellij attach'
 alias zls='zellij list-sessions'
 alias zk='zellij kill-session'
