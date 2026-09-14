@@ -3,6 +3,17 @@ return {
   {
     "nvim-neo-tree/neo-tree.nvim",
     opts = {
+      window = {
+        position = "float",
+        float = {
+          relative = "editor",
+          border = "rounded",
+          width = 80,
+          height = "80%",
+          col = 10,
+          row = 5,
+        },
+      },
       filesystem = {
         filtered_items = {
           hide_dotfiles = false,
@@ -74,7 +85,7 @@ return {
       require("smart-splits").setup({
         multiplexerIntegration = "zellij", -- 改为 zellij 因为你在 zellij 中使用
         ignore_single_chdir = true,
-        at_edge = "wrap",
+        at_edge = "stop", -- zellij 集成不支持 wrap
         -- 确保在 neo-tree 等特殊窗口中也能正常工作
         disabled_filetypes = {},
       })
