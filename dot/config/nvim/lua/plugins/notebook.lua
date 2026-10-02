@@ -1,3 +1,34 @@
+-- 根据激活的 venv 找匹配的 Jupyter 内核：先按「内核名 == venv 目录名」匹配，
+-- 再按「内核 cmdline 里的 python 是否落在该 venv 内」匹配（目录名叫 .venv 的项目）
+function MoltenKernelForVenv(venv)
+  if not venv or venv == "" then
+    return nil
+  end
+  venv = venv:gsub("/$", "")
+  local cmd = vim.fn.shellescape(vim.g.python3_host_prog) .. " -m jupyter kernelspec list --json"
+  local ok, out = pcall(vim.fn.system, cmd)
+  if not ok or vim.v.shell_error ~= 0 then
+    return nil
+  end
+  local decoded = vim.json.decode(out)
+  local specs = decoded and decoded.kernelspecs
+  if not specs then
+    return nil
+  end
+  local basename = venv:match("[^/]+$")
+  if specs[basename] then
+    return basename
+  end
+  for name, ks in pairs(specs) do
+    local argv = ks.spec and ks.spec.argv
+    local py = argv and argv[1]
+    if py and py:sub(1, #venv + 1) == venv .. "/" then
+      return name
+    end
+  end
+  return nil
+end
+
 return {
   {
     "benlubas/molten-nvim",
@@ -9,7 +40,26 @@ return {
       vim.g.molten_virt_lines_off_by_1 = true
     end,
     keys = {
-      { "<leader>mi", "<cmd>MoltenInit<cr>", desc = "Notebook: Initialize Kernel", ft = "python" },
+      {
+        "<leader>mi",
+        function()
+          if vim.b.molten_attached_kernel then
+            vim.notify("Molten: 当前 buffer 已绑定内核 " .. vim.b.molten_attached_kernel)
+            return
+          end
+          local venv = os.getenv("VIRTUAL_ENV") or os.getenv("CONDA_PREFIX")
+          local kernel = MoltenKernelForVenv(venv)
+          if kernel then
+            vim.notify("Molten: 使用内核 " .. kernel .. "（来自 " .. venv .. "）")
+            vim.cmd("MoltenInit " .. kernel)
+          else
+            -- 未激活 venv 或没匹配到内核：退回手动选择
+            vim.cmd("MoltenInit")
+          end
+        end,
+        desc = "Notebook: Initialize Kernel (auto venv match)",
+        ft = "python",
+      },
       {
         "<leader>ma",
         function()

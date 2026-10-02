@@ -18,13 +18,15 @@ Neovim 下的 Jupyter notebook 工作流：jupytext 负责文件转换，molten 
 
 ```text
 nvim xxx.ipynb            # 自动转成带 # %% 标记的 python 缓冲区（jupytext.nvim）
-<leader>mi                # 启动内核：选 "Python (neovim)" 或直接给项目 venv 路径
+<leader>mi                # 启动内核：智能匹配（见下），匹配不到再手动选
 <leader>ml / mv / ma      # 跑当前行 / 跑选中 / 全部运行
 <leader>mo / mh           # 显示 / 隐藏输出窗口
 <leader>mr                # 重启内核
 <leader>mx                # 把输出导出回 .ipynb（同事可在 Jupyter 里看到）
 :w                        # jupytext 自动把改动同步回 .ipynb，不丢输出
 ```
+
+`<leader>mi` 是智能匹配：启动 nvim 前如果激活了项目 venv（`$VIRTUAL_ENV` 或 `$CONDA_PREFIX`），会自动找到对应的内核直接初始化——先按「内核名 == venv 目录名」匹配，再按「内核 python 路径落在该 venv 内」匹配（所以 venv 目录叫 `.venv` 的项目，注册内核时用项目名命名也没关系）。匹配不到时退回手动选择列表。换项目的工作流就是：`source .venv/bin/activate.fish`（fish）→ 启动 nvim → `<leader>mi`。
 
 项目自己的 venv 要跑 notebook 的话，里面必须有 ipykernel。virtualenv 创建的 venv 没有 pip，用 uv 装：
 
