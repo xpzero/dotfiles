@@ -67,6 +67,9 @@ end
 # Hermes Agent — ensure ~/.local/bin is on PATH
 fish_add_path -g "$HOME/.local/bin"
 
+# pip --user 安装的命令行工具（追加到末尾，避免遮蔽 brew 版本）
+fish_add_path -g -a "$HOME/Library/Python/3.9/bin"
+
 # kimi-code
 fish_add_path -g "$HOME/.kimi-code/bin"
 
