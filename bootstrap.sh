@@ -39,8 +39,8 @@ install_brew() {
   if ! command -v brew &>/dev/null; then
     info "Homebrew 未安装，正在通过镜像加速安装..."
 
-    # 使用国内镜像脚本安装（如：中科大提供的安装工具或清华大学提供的脚本）
-    /bin/bash -c "$(curl -fsSL raw.githubusercontent.com)"
+    # 通过官方脚本安装，镜像加速由上方导出的 HOMEBREW_* 环境变量提供
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
     # 激活环境变量
     if [[ "$(uname -m)" == "arm64" ]]; then
@@ -60,7 +60,7 @@ install_brew() {
 # 2. 安装软件
 setup_software() {
   info "正在通过 Homebrew 安装软件..."
-  local apps=(neovim wezterm fish starship fnm git fzf ripgrep herdr)
+  local apps=(neovim wezterm fish starship fnm git fzf ripgrep herdr uv python3 imagemagick)
   for app in "${apps[@]}"; do
     if ! brew list "$app" &>/dev/null; then
       brew install "$app"
@@ -70,7 +70,39 @@ setup_software() {
   done
 }
 
-# 3. 备份与符号链接逻辑
+# 3. 安装 Python 工具链与 Jupyter 环境（Neovim notebook 支持）
+setup_python_env() {
+  # jupytext：jupytext.nvim 依赖的 ipynb 转换 CLI
+  if ! command -v jupytext &>/dev/null; then
+    info "通过 uv 安装 jupytext..."
+    uv tool install jupytext
+  else
+    info "jupytext 已安装，跳过。"
+  fi
+
+  # Neovim 专用 Jupyter venv：molten 远程插件与内核的运行环境
+  # 注意：Homebrew 升级 Python 后 venv 可能损坏，重跑本脚本即可重建
+  local venv="$HOME/.local/share/jupyter/venvs/neovim-python"
+  if [[ ! -x "$venv/bin/python" ]]; then
+    info "创建 Neovim Jupyter 专用 venv..."
+    mkdir -p "$(dirname "$venv")"
+    python3 -m venv "$venv"
+  fi
+  info "安装 venv 依赖 (pynvim/jupyter_client/ipykernel 等)..."
+  "$venv/bin/pip" install -q --upgrade pip
+  "$venv/bin/pip" install -q pynvim jupyter_client ipykernel nbformat pillow pyperclip
+
+  # 注册 kernelspec（名字与 venv 目录名一致，molten 据此自动匹配内核）
+  local kernel_dir="$HOME/Library/Jupyter/kernels/neovim-python"
+  if [[ ! -d "$kernel_dir" ]]; then
+    "$venv/bin/python" -m ipykernel install --user --name neovim-python --display-name "Python (neovim)"
+    success "已注册 kernelspec: Python (neovim)"
+  else
+    info "kernelspec neovim-python 已存在，跳过。"
+  fi
+}
+
+# 4. 备份与符号链接逻辑
 backup_and_link() {
   local src=$1
   local dest=$2
@@ -87,7 +119,7 @@ backup_and_link() {
   success "已链接: $dest"
 }
 
-# 4. 执行安装 Dotfiles
+# 5. 执行安装 Dotfiles
 install_dotfiles() {
   info "开始安装 Dotfiles..."
 
@@ -106,7 +138,7 @@ install_dotfiles() {
   done
 }
 
-# 5. 初始化仓库 (如果需要)
+# 6. 初始化仓库 (如果需要)
 # 获取远程分支并选择
 choose_branch_and_clone() {
   local url=$1
@@ -168,7 +200,7 @@ initialize_repo() {
   fi
 }
 
-# 6. 设置 fish 为默认 shell
+# 7. 设置 fish 为默认 shell
 setup_fish_as_default() {
   local fish_path
   fish_path=$(which fish)
@@ -201,6 +233,7 @@ main() {
   # 确保网络环境能连接 GitHub
   install_brew
   setup_software
+  setup_python_env
 
   # 如果当前不在 dotfiles 目录，则初始化
   if [[ "$(basename "$(pwd)")" != "dotfiles" ]]; then
