@@ -54,21 +54,21 @@ alias gstp='git stash pop'
 alias gst='git status'
 
 # opencode
-fish_add_path $HOME/.opencode/bin
-fish_add_path --move /opt/homebrew/bin
+fish_add_path -g "$HOME/.opencode/bin"
+fish_add_path -g --move /opt/homebrew/bin
 
 # pnpm
-set -gx PNPM_HOME $HOME/Library/pnpm
+set -gx PNPM_HOME "$HOME/Library/pnpm"
 if not string match -q -- "$PNPM_HOME/bin" $PATH
     set -gx PATH "$PNPM_HOME/bin" $PATH
 end
 # pnpm end
 
 # Hermes Agent — ensure ~/.local/bin is on PATH
-fish_add_path "$HOME/.local/bin"
+fish_add_path -g "$HOME/.local/bin"
 
 # kimi-code
 fish_add_path -g "$HOME/.kimi-code/bin"
 
 # OpenClaw Completion
-test -f '$HOME/.openclaw/completions/openclaw.fish'; and source '$HOME/.openclaw/completions/openclaw.fish'
+test -f "$HOME/.openclaw/completions/openclaw.fish"; and source "$HOME/.openclaw/completions/openclaw.fish"

@@ -1,5 +1,5 @@
 # Basic Zsh configuration
-export PATH=$HOME/.opencode/bin:$PATH
+export PATH="$HOME/.opencode/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 
 # Editor

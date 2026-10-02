@@ -1,4 +1,3 @@
 # This file contains fish universal variable definitions.
 # VERSION: 3.0
 SETUVAR __fish_initialized:4300
-SETUVAR fish_user_paths:/opt/homebrew/bin\x1e$HOME/\x2elocal/bin\x1e$HOME/Library/Python/3\x2e9/bin\x1e$HOME/\x2eopencode/bin\x1e$HOME/\x2eopencode/bin
