@@ -8,3 +8,7 @@ opencode
 gh
 git
 cagent
+dot/config/browser-harness/
+dot/config/github-copilot/
+dot/config/herdr/*
+!dot/config/herdr/config.toml

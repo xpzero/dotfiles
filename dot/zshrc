@@ -1,0 +1,691 @@
+# Basic Zsh configuration
+export PATH=$HOME/.opencode/bin:$PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Editor
+export EDITOR=nvim
+
+# Java
+export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# Homebrew mirrors
+export HOMEBREW_API_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
+export HOMEBREW_BOTTLE_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
+export HOMEBREW_BREW_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
+export HOMEBREW_CORE_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
+export HOMEBREW_PIP_INDEX_URL="pypi.tuna.tsinghua.edu.cn"
+export HOMEBREW_NO_AUTO_UPDATE=1
+
+# Interactive shell setup
+if [[ $- == *i* ]]; then
+    # Starship prompt
+    eval "$(starship init zsh)"
+    
+    # fnm (Node version manager)
+    eval "$(fnm env --use-on-cd)"
+fi
+
+# Aliases
+alias pn="pnpm"
+alias pnx="pnpx"
+alias n="nvim"
+
+# Git aliases
+alias ga='git add'
+alias gaa='git add --all'
+alias gb='git branch'
+alias gba='git branch --all'
+alias gbd='git branch --delete'
+alias gbD='git branch --delete --force'
+alias gco='git checkout'
+alias gcb='git checkout -b'
+alias gcm='git checkout $(git_main_branch)'
+alias gcl='git clone --recurse-submodules'
+alias gcmsg='git commit --message'
+alias gcp='git cherry-pick'
+alias gd='git diff'
+alias gdca='git diff --cached'
+alias glg='git log --stat'
+alias glo='git log --oneline --decorate'
+alias glog='git log --oneline --decorate --graph'
+alias gloga='git log --oneline --decorate --graph --all'
+alias gmom='git merge origin/$(git_main_branch)'
+alias gl='git pull'
+alias gp='git push'
+alias gpf='git push --force'
+alias grhh='git reset --hard'
+alias grs='git restore'
+alias gsta='git stash save'
+alias gstc='git stash clear'
+alias gstd='git stash drop'
+alias gstl='git stash list'
+alias gstp='git stash pop'
+alias gst='git status'
+
+# Zellij aliases
+alias za='zellij attach'
+alias zls='zellij list-sessions'
+alias zk='zellij kill-session'
+alias zka='zellij kill-all-sessions'
+alias zd='zellij delete-session'
+alias zda='zellij delete-all-sessions'
+
+# Req workspace configuration
+export REQS_DIR="$HOME/Documents/workspace/reqs"
+export REPOS_DIR="$HOME/Documents/workspace/repos"
+
+# reqs: 查看所有需求工作区状态
+reqs() {
+    if [[ ! -d "$REQS_DIR" ]] || [[ -z $(ls -A "$REQS_DIR" 2>/dev/null) ]]; then
+        echo "当前没有活跃的需求工作区"
+        return 1
+    fi
+
+    for reqdir in "$REQS_DIR"/*/; do
+        [[ -d "$reqdir" ]] || continue
+        local name=$(basename "$reqdir")
+        echo "── $name ──"
+        for subdir in "$reqdir"*/; do
+            [[ -d "$subdir" ]] || continue
+            local proj=$(basename "$subdir")
+            if [[ -e "$subdir/.git" ]]; then
+                local branch=$(git -C "$subdir" rev-parse --abbrev-ref HEAD 2>/dev/null | xargs)
+                local dirty_count=$(git -C "$subdir" status --porcelain 2>/dev/null | wc -l | xargs)
+                if [[ "$dirty_count" -gt 0 ]]; then
+                    local flag=" [dirty]"
+                else
+                    local flag=""
+                fi
+                echo "  $proj: $branch$flag"
+            else
+                echo "  $proj: (非 git)"
+            fi
+        done
+        echo
+    done
+}
+
+# req <name>: 切换到对应需求的 Zellij session
+req() {
+    zj "$@"
+}
+
+# zj [name]: attach 或新建 Zellij session
+zj() {
+    local name="$1"
+    local reqdir="$REQS_DIR/$name"
+    local session="req-$name"
+
+    # 无参数：列出所有需求 session
+    if [[ -z "$name" ]]; then
+        echo "需求 sessions:"
+        zellij list-sessions 2>/dev/null | grep "^req-" | sed 's/^/  /'
+        return 0
+    fi
+
+    # 检测当前是否在 Zellij 客户端内
+    local in_zellij=false
+    local ppid=$PPID
+    for i in {1..20}; do
+        if [[ -z "$ppid" ]] || [[ "$ppid" =~ ^[[:space:]]*$ ]] || [[ "$ppid" -le 1 ]]; then
+            break
+        fi
+        
+        local pname=$(ps -p $ppid -o command= 2>/dev/null)
+        [[ -z "$pname" ]] && break
+        
+        if [[ "$pname" =~ ^zellij(\ .*)?$ ]] || [[ "$pname" =~ /zellij(\ .*)?$ ]]; then
+            in_zellij=true
+            break
+        fi
+        
+        ppid=$(ps -p $ppid -o ppid= 2>/dev/null | xargs)
+        if [[ -z "$ppid" ]] || [[ "$ppid" =~ ^[[:space:]]*$ ]]; then
+            break
+        fi
+    done
+
+    # 如果在 Zellij 内 → 必须先 detach
+    if [[ "$in_zellij" = "true" ]]; then
+        echo "检测到你在 Zellij session 内部，正在 detach..."
+        zellij action detach >/dev/null 2>/dev/null
+        sleep 0.5
+    fi
+
+    # attach 前检测依赖漂移
+    if [[ -d "$reqdir" ]]; then
+        __req_check_deps_drift "$reqdir"
+    fi
+
+    # 目标 session 已存在 → 直接 attach
+    if zellij list-sessions 2>/dev/null | grep -q "$session"; then
+        echo "切换到已存在的 $session..."
+        zellij attach "$session"
+        return 0
+    fi
+
+    # 目标 session 不存在 → 创建 session + 加载 layout
+    if [[ -d "$reqdir" ]]; then
+        cd "$reqdir"
+    fi
+
+    local layout="$HOME/Documents/workspace/.req/reqs/$name/layout.kdl"
+
+    echo "创建 session: $session..."
+
+    # 第一步：使用 Python pty spawn 提供伪终端
+    if [[ -f "$layout" ]]; then
+        python3 "$HOME/.config/wezterm/zellij-spawn.py" "$session" "$layout"
+    else
+        python3 "$HOME/.config/wezterm/zellij-spawn.py" "$session"
+    fi
+
+    # 验证 session 是否真正创建成功
+    if ! zellij list-sessions 2>/dev/null | grep -q "$session"; then
+        echo "创建 session 失败（Python PTY spawn 未能创建 session）"
+        return 1
+    fi
+
+    # 第二步：attach 到 session
+    echo "即将进入 $session..."
+    sleep 0.5
+    zellij attach "$session"
+}
+
+# req-create: 创建需求工作区
+req-create() {
+    local enter=true
+    local right_cmd=""
+    local args=()
+
+    # 解析标志参数
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-enter)
+                enter=false
+                shift
+                ;;
+            --right-cmd=*)
+                right_cmd="${1#*=}"
+                shift
+                ;;
+            *)
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    # 默认右侧命令
+    if [[ -z "$right_cmd" ]]; then
+        right_cmd="qodercli"
+    fi
+
+    # 取需求名
+    local name="${args[0]}"
+    if [[ -z "$name" ]]; then
+        echo "用法:"
+        echo "  交互模式: req-create <需求名> [--right-cmd=xxx] [--no-enter]"
+        echo "  参数模式: req-create <需求名> <proj1:branch1> [proj2:branch2] ... [--right-cmd=xxx] [--no-enter]"
+        return 1
+    fi
+
+    local reqdir="$REQS_DIR/$name"
+    local profile_path="$HOME/Documents/workspace/.req/profiles/$name.json"
+
+    if [[ -d "$reqdir" ]]; then
+        echo "需求 '$name' 已存在: $reqdir"
+        return 1
+    fi
+
+    mkdir -p "$reqdir"
+    mkdir -p "$HOME/Documents/workspace/.req/profiles"
+
+    echo "=== 创建需求: $name ==="
+    echo
+
+    # 列出可用项目
+    local repos=()
+    for d in "$REPOS_DIR"/*/; do
+        [[ -d "$d/.git" ]] && repos+=("$(basename "$d")")
+    done
+
+    if [[ ${#repos[@]} -eq 0 ]]; then
+        echo "repos/ 下没有找到任何 git 仓库"
+        rmdir "$reqdir"
+        return 1
+    fi
+
+    # 清理所有主仓库的失效 worktree 元数据
+    for repo in "${repos[@]}"; do
+        git -C "$REPOS_DIR/$repo" worktree prune 2>/dev/null
+    done
+
+    # === 选择项目: 参数模式 or 交互模式 ===
+    local projects=()
+    if [[ ${#args[@]} -gt 1 ]]; then
+        # 参数模式: 从命令行获取项目:分支
+        for ((i=1; i<${#args[@]}; i++)); do
+            projects+=("${args[$i]}")
+        done
+    else
+        # 交互模式
+        echo "可用项目（编号选择，逗号分隔多个）："
+        for i in "${!repos[@]}"; do
+            echo "  $((i+1))) ${repos[$i]}"
+        done
+        echo
+        read -r select_text "选择项目 (如 1,2,3): "
+        if [[ -z "$select_text" ]]; then
+            echo "未选择项目"
+            rmdir "$reqdir"
+            return 1
+        fi
+
+        IFS=',' read -ra indices <<< "$select_text"
+        for idx in "${indices[@]}"; do
+            idx=$(echo "$idx" | xargs)
+            local proj_name="${repos[$((idx-1))]}"
+            if [[ -z "$proj_name" ]]; then
+                echo "无效的编号: $idx"
+                continue
+            fi
+
+            echo "项目: $proj_name"
+            echo "  可用分支（最近）："
+            git -C "$REPOS_DIR/$proj_name" branch -a --sort=-committerdate 2>/dev/null | head -5 | sed 's/^/    /'
+            read -r branch_text "  输入分支名 (留空查看上方列表): "
+            local branch="$branch_text"
+            if [[ -z "$branch" ]]; then
+                echo "  分支不能为空，跳过 $proj_name"
+                continue
+            fi
+            projects+=("$proj_name:$branch")
+        done
+    fi
+
+    if [[ ${#projects[@]} -eq 0 ]]; then
+        echo "没有选择任何有效项目"
+        rmdir "$reqdir"
+        return 1
+    fi
+
+    # 生成 profile JSON
+    local created_projects=()
+    local profile_entries=()
+
+    for entry in "${projects[@]}"; do
+        IFS=':' read -r proj branch <<< "$entry"
+
+        # 如果没有指定分支（无冒号或冒号后为空），交互询问
+        if [[ -z "$branch" ]]; then
+            echo "── 处理 $proj: 分支未指定 ──"
+            branch=""
+            read -r branch_text "  请输入分支名: "
+            branch="$branch_text"
+            if [[ -z "$branch" ]]; then
+                echo "  分支不能为空，跳过 $proj"
+                continue
+            fi
+        fi
+
+        local repo_dir="$REPOS_DIR/$proj"
+        local wt_dir="$reqdir/$proj"
+
+        echo "── 处理 $proj: $branch ─"
+
+        # 检查仓库是否存在
+        if [[ ! -d "$repo_dir/.git" ]]; then
+            echo "  仓库不存在: $repo_dir，跳过"
+            continue
+        fi
+
+        # 检查分支是否存在
+        local branch_exists=$(git -C "$repo_dir" branch -a 2>/dev/null | grep -E "(^\*\s|remotes/origin/)$branch")
+        if [[ -z "$branch_exists" ]]; then
+            echo "  分支 '$branch' 在 $proj 中不存在"
+            read -r create_branch "是否基于 master 创建? [Y/n]: "
+            if [[ "$create_branch" = "n" ]] || [[ "$create_branch" = "N" ]]; then
+                echo "跳过 $proj"
+                continue
+            fi
+
+            # fetch origin master
+            echo "  拉取 origin/master..."
+            local fetch_output=$(git -C "$repo_dir" fetch origin master 2>&1)
+            local fetch_status=$?
+            echo "$fetch_output" | sed 's/^/  /'
+            if [[ $fetch_status -ne 0 ]]; then
+                echo "fetch 失败，跳过 $proj"
+                continue
+            fi
+
+            # 如果当前不在 master，先 stash 并 checkout
+            local current_branch=$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null | xargs)
+            if [[ "$current_branch" != "master" ]]; then
+                echo "  切换到 master..."
+                git -C "$repo_dir" stash push -m "auto-stash by req-create" 2>/dev/null
+                local checkout_output=$(git -C "$repo_dir" checkout master 2>&1)
+                local checkout_status=$?
+                echo "$checkout_output" | sed 's/^/  /'
+                if [[ $checkout_status -ne 0 ]]; then
+                    echo "切换到 master 失败，跳过 $proj"
+                    continue
+                fi
+            fi
+
+            # pull origin master to update local master
+            echo "  更新 master 到最新..."
+            git -C "$repo_dir" pull origin master 2>&1 | sed 's/^/  /'
+
+            # 创建新分支
+            echo "  创建新分支: $branch"
+            local branch_output=$(git -C "$repo_dir" branch "$branch" 2>&1)
+            local branch_status=$?
+            echo "$branch_output" | sed 's/^/  /'
+            if [[ $branch_status -ne 0 ]]; then
+                echo "创建分支失败，跳过 $proj"
+                continue
+            fi
+        fi
+
+        # 检查主仓库是否正占用此分支
+        local main_branch=$(git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null | xargs)
+        if [[ "$main_branch" = "$branch" ]]; then
+            echo "  主仓库正在占用分支 '$branch'，尝试 stash + checkout master..."
+            git -C "$repo_dir" stash push -m "auto-stash by req-create" 2>/dev/null
+            git -C "$repo_dir" checkout master 2>&1 | sed 's/^/  /'
+            if [[ $? -ne 0 ]]; then
+                echo "  无法切换主仓库分支，跳过 $proj"
+                continue
+            fi
+        fi
+
+        # 创建 worktree
+        echo "  创建 worktree..."
+        local worktree_output=$(git -C "$repo_dir" worktree add "$wt_dir" "$branch" 2>&1)
+        local worktree_status=$?
+        echo "$worktree_output" | sed 's/^/  /'
+        if [[ $worktree_status -ne 0 ]]; then
+            echo "  worktree 创建失败，可能分支已被占用"
+            continue
+        fi
+
+        created_projects+=("$proj:$branch")
+
+        # 依赖处理：软链到主仓库 node_modules
+        echo "  链接依赖..."
+        __req_link_node_modules "$repo_dir" "$wt_dir"
+
+        # 拼接 profile JSON 条目
+        if [[ ${#profile_entries[@]} -eq 0 ]]; then
+            profile_entries+=("\"$proj\" : {\"branch\":\"$branch\",\"mode\":\"link\"}")
+        else
+            profile_entries+=("\"$proj\" : {\"branch\":\"$branch\",\"mode\":\"link\"}")
+        fi
+
+        echo "  ✓ $proj 完成"
+        echo
+    done
+
+    if [[ ${#created_projects[@]} -eq 0 ]]; then
+        echo "所有项目均创建失败"
+        rmdir "$reqdir"
+        return 1
+    fi
+
+    # 写入 profile JSON
+    local profile_json="{ \"name\" : \"$name\", \"rightPaneCommand\" : \"$right_cmd\", \"projects\" : { $(IFS=,; echo "${profile_entries[*]}") } }"
+    echo "$profile_json" > "$profile_path"
+    echo "✓ profile 已写入: $profile_path"
+
+    # 生成 Zellij layout
+    local layout_dir="$HOME/Documents/workspace/.req/reqs/$name"
+    local layout_path="$layout_dir/layout.kdl"
+    mkdir -p "$layout_dir"
+
+    echo 'layout {' > "$layout_path"
+    echo '    pane size=1 borderless=true {' >> "$layout_path"
+    echo '        plugin location="zellij:compact-bar"' >> "$layout_path"
+    echo '    }' >> "$layout_path"
+    echo '    pane split_direction="vertical" {' >> "$layout_path"
+    # 左侧 40% - 所有 pane 统一 stacked
+    echo '        pane size="40%" stacked=true {' >> "$layout_path"
+    for entry in "${created_projects[@]}"; do
+        IFS=':' read -r proj _ <<< "$entry"
+        echo "            pane name=\"$proj\" command=\"nvim\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
+    done
+    for entry in "${created_projects[@]}"; do
+        IFS=':' read -r proj _ <<< "$entry"
+        echo "            pane name=\"$proj-term\" { cwd \"$reqdir/$proj\"; }" >> "$layout_path"
+    done
+    echo '        }' >> "$layout_path"
+    # 右侧 30% 工具 pane
+    echo "        pane name=\"tool\" command=\"$right_cmd\" { cwd \"$reqdir\"; }" >> "$layout_path"
+    echo '    }' >> "$layout_path"
+    echo '}' >> "$layout_path"
+    echo "✓ layout 已写入: $layout_path"
+
+    echo
+    echo "✓ 需求 '$name' 工作区已创建完成"
+    echo "  工作区: $reqdir"
+    echo "  Profile: $profile_path"
+    echo "  Layout: $layout_path"
+
+    # 如果指定了 --enter，自动进入 session
+    if [[ "$enter" = "true" ]]; then
+        echo
+        echo "正在进入 session '$name'..."
+        zj "$name"
+    else
+        echo
+        echo "下一步：zj $name"
+    fi
+}
+
+# req-remove: 删除需求工作区
+req-remove() {
+    local name="$1"
+    if [[ -z "$name" ]]; then
+        echo "用法: req-remove <需求名>"
+        return 1
+    fi
+
+    local reqdir="$REQS_DIR/$name"
+    local profile_path="$HOME/Documents/workspace/.req/profiles/$name.json"
+    local layout_dir="$HOME/Documents/workspace/.req/reqs/$name"
+    local session="req-$name"
+
+    if [[ ! -d "$reqdir" ]]; then
+        echo "需求 '$name' 不存在"
+        return 1
+    fi
+
+    read -r confirm "确认删除需求 '$name'？(y/N) "
+    echo
+    if [[ "$confirm" != "y" ]] && [[ "$confirm" != "Y" ]]; then
+        echo "取消"
+        return 0
+    fi
+
+    echo "删除 Zellij session: $session"
+    zellij kill-session "$session" 2>/dev/null
+    zellij delete-session "$session" --force 2>/dev/null
+
+    # 逐个移除 worktree
+    for wt in "$reqdir"/*/; do
+        [[ -d "$wt" ]] || continue
+        local proj=$(basename "$wt")
+        local repo="$REPOS_DIR/$proj"
+        if [[ -d "$repo/.git" ]]; then
+            echo "移除 worktree: $proj"
+            git -C "$repo" worktree remove "$wt" --force 2>/dev/null
+            git -C "$repo" worktree prune 2>/dev/null
+        fi
+    done
+
+    # 删除需求目录
+    if [[ -d "$reqdir" ]]; then
+        rm -rf "$reqdir"
+    fi
+
+    # 删除 profile
+    if [[ -f "$profile_path" ]]; then
+        rm -f "$profile_path"
+        echo "已删除 profile: $profile_path"
+    fi
+
+    # 删除 layout 目录
+    if [[ -d "$layout_dir" ]]; then
+        rm -rf "$layout_dir"
+    fi
+
+    echo "✓ 需求 '$name' 已清理"
+}
+
+# === 内部 helper：把 worktree 的 node_modules 软链到主仓库 ===
+__req_link_node_modules() {
+    local repo_dir="$1"
+    local wt_dir="$2"
+
+    # 主仓库无 node_modules → 先安装
+    if [[ ! -d "$repo_dir/node_modules" ]]; then
+        echo "    主仓库无 node_modules，先安装..."
+        pushd "$repo_dir" >/dev/null
+        tnpm install --prefer-offline 2>&1 | tail -3 | sed 's/^/    /'
+        popd >/dev/null
+    fi
+
+    # worktree 内若已有实体 node_modules，跳过避免覆盖
+    if [[ -d "$wt_dir/node_modules" ]] && [[ ! -L "$wt_dir/node_modules" ]]; then
+        echo "    已存在实体 node_modules，跳过软链"
+        return 0
+    fi
+
+    # 移除旧软链（若有）
+    [[ -L "$wt_dir/node_modules" ]] && rm "$wt_dir/node_modules"
+
+    ln -s "$repo_dir/node_modules" "$wt_dir/node_modules"
+    echo "    ✓ 软链: $wt_dir/node_modules -> $repo_dir/node_modules"
+}
+
+# === 内部 helper：检测 worktree 依赖是否相对主仓库漂移 ===
+__req_check_deps_drift() {
+    local reqdir="$1"
+    local drifted=()
+
+    for wt in "$reqdir"/*/; do
+        [[ -d "$wt" ]] || continue
+        local proj=$(basename "$wt")
+        local repo="$REPOS_DIR/$proj"
+        [[ -d "$repo/.git" ]] || continue
+
+        # 软链模式无需检测（共享 node_modules）
+        if [[ -L "$wt/node_modules" ]]; then
+            for lock in package-lock.json yarn.lock pnpm-lock.yaml; do
+                if [[ -f "$wt/$lock" ]] && [[ -f "$repo/$lock" ]]; then
+                    local h1=$(shasum "$wt/$lock" 2>/dev/null | cut -d' ' -f1)
+                    local h2=$(shasum "$repo/$lock" 2>/dev/null | cut -d' ' -f1)
+                    if [[ "$h1" != "$h2" ]]; then
+                        drifted+=("$proj($lock)")
+                    fi
+                fi
+            done
+        fi
+    done
+
+    if [[ ${#drifted[@]} -gt 0 ]]; then
+        echo
+        echo "⚠ 以下 worktree 的 lock 与主仓库不一致，依赖可能错位："
+        for d in "${drifted[@]}"; do
+            echo "    - $d"
+        done
+        echo "  处理方式："
+        echo "    req-isolate <需求名> <项目名>   # 升级为独立 node_modules"
+        echo "    git checkout package-lock.json  # 放弃 worktree 内的 lock 修改"
+        echo
+    fi
+}
+
+# === req-isolate: 把 worktree 从软链升级为独立 node_modules ===
+req-isolate() {
+    local name="$1"
+    local proj="$2"
+    if [[ -z "$name" ]] || [[ -z "$proj" ]]; then
+        echo "用法: req-isolate <需求名> <项目名>"
+        return 1
+    fi
+
+    local wt_dir="$REQS_DIR/$name/$proj"
+    if [[ ! -d "$wt_dir" ]]; then
+        echo "worktree 不存在: $wt_dir"
+        return 1
+    fi
+
+    # 已经是实体目录则跳过
+    if [[ -d "$wt_dir/node_modules" ]] && [[ ! -L "$wt_dir/node_modules" ]]; then
+        echo "$proj 已经是独立模式，无需 isolate"
+        return 0
+    fi
+
+    # 移除软链
+    if [[ -L "$wt_dir/node_modules" ]]; then
+        rm "$wt_dir/node_modules"
+        echo "已移除软链: $wt_dir/node_modules"
+    fi
+
+    echo "在 $wt_dir 执行 tnpm install..."
+    pushd "$wt_dir" >/dev/null
+    tnpm install --prefer-offline
+    local rc=$?
+    popd >/dev/null
+
+    if [[ $rc -eq 0 ]]; then
+        echo "✓ $proj 已切换为独立模式"
+    else
+        echo "✗ tnpm install 失败 (rc=$rc)"
+        return $rc
+    fi
+}
+
+# === req-relink: 把独立 node_modules 切回软链 ===
+req-relink() {
+    local name="$1"
+    local proj="$2"
+    if [[ -z "$name" ]] || [[ -z "$proj" ]]; then
+        echo "用法: req-relink <需求名> <项目名>"
+        return 1
+    fi
+
+    local wt_dir="$REQS_DIR/$name/$proj"
+    local repo_dir="$REPOS_DIR/$proj"
+    if [[ ! -d "$wt_dir" ]]; then
+        echo "worktree 不存在: $wt_dir"
+        return 1
+    fi
+    if [[ ! -d "$repo_dir/.git" ]]; then
+        echo "主仓库不存在: $repo_dir"
+        return 1
+    fi
+
+    # 已经是软链则跳过
+    if [[ -L "$wt_dir/node_modules" ]]; then
+        echo "$proj 已经是软链模式，无需 relink"
+        return 0
+    fi
+
+    if [[ -d "$wt_dir/node_modules" ]]; then
+        read -r confirm "将删除 $wt_dir/node_modules 切回软链，确认？(y/N) "
+        if [[ "$confirm" != "y" ]] && [[ "$confirm" != "Y" ]]; then
+            echo "取消"
+            return 0
+        fi
+        rm -rf "$wt_dir/node_modules"
+    fi
+
+    __req_link_node_modules "$repo_dir" "$wt_dir"
+}
+
+# Source local zshrc if exists
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
