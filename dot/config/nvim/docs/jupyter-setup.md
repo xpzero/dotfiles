@@ -85,7 +85,22 @@ jupytext --set-kernel python3 xxx.ipynb
 
 注意：`jupytext --set-kernel` 需要 jupytext 自己的环境里有 jupyter_client，uv tool/pipx 装的 jupytext 默认没有；此时用装了 nbformat 的 venv 直接改 metadata 也可以。
 
-### 5. 快速自检命令
+### 5. 运行报 ModuleNotFoundError，但依赖明明装了
+
+原因：molten 执行代码的环境是 `<leader>mi` 启动时选的那个内核，**不会自动使用项目目录的 venv**。项目依赖（如 langgraph）装在项目 venv、内核却是 "Python (neovim)" 专用环境时就会报错。
+
+修复：把项目 venv 注册成内核，molten 换用它：
+
+```bash
+/path/to/project/.venv/bin/python -m ipykernel install --user \
+  --name <项目名> --display-name "Python (<项目名>)"
+```
+
+nvim 里先 `:MoltenDeinit` 卸载旧内核，再 `<leader>mi` 选 "Python (<项目名>)"。前提是项目 venv 里有 ipykernel（virtualenv 创建的 venv 没有 pip，用 `uv pip install --python .../bin/python ipykernel`）。
+
+规律：一个项目注册一个 kernelspec；`jupyter kernelspec list` 查看已有内核；遇到 ModuleNotFoundError 先想"内核选对了吗"，再想依赖装没装。
+
+### 6. 快速自检命令
 
 ```bash
 # venv 健康
