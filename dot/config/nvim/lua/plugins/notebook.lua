@@ -96,7 +96,10 @@ return {
   },
   {
     -- Jupyter 内核补全，普通模式 <C-x><C-o> 触发 omnifunc
+    -- 上游仅支持 nvim-cmp（plugin/ 里硬编码 require("cmp")），迁移 blink.cmp 后停用；
+    -- 若上游适配 blink 或迁回 cmp，改回 enabled 即可
     "lkhphuc/jupyter-kernel.nvim",
+    enabled = false,
     opts = {},
   },
   {

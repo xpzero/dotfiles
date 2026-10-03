@@ -2,6 +2,8 @@ return {
 
   {
     "Exafunction/windsurf.nvim",
+    enabled = false, -- codeium 补全停用：nvim-cmp 已迁移 blink.cmp，AI 内联建议由 Copilot ghost text 接管；
+    -- 如需换回 codeium，改回 enabled 并去掉 copilot extra
     dependencies = {
       "nvim-lua/plenary.nvim",
       "hrsh7th/nvim-cmp",
