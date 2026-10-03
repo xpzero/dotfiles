@@ -1,53 +1,31 @@
 return {
-
   {
     "Exafunction/windsurf.nvim",
-    enabled = false, -- codeium 补全停用：nvim-cmp 已迁移 blink.cmp，AI 内联建议由 Copilot ghost text 接管；
-    -- 如需换回 codeium，改回 enabled 并去掉 copilot extra
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "hrsh7th/nvim-cmp",
+    event = "InsertEnter",
+    main = "codeium", -- 仓库改名 windsurf 后 lua 模块仍叫 codeium，须显式指定
+    dependencies = { "nvim-lua/plenary.nvim" },
+    opts = {
+      enable_cmp_source = false,
+      virtual_text = {
+        enabled = true,
+        key_bindings = {
+          accept = false, -- Tab 采纳由 blink.cmp 的 ai_accept 接线处理
+          next = "<M-]>",
+          prev = "<M-[>",
+        },
+      },
     },
-    config = function()
-      require("codeium").setup({})
-    end,
   },
-
   {
-    "nickjvandyke/opencode.nvim",
-    dependencies = {
-      { "folke/snacks.nvim", opts = { input = {}, picker = {}, terminal = {} } },
-    },
-    config = function()
-      vim.g.opencode_opts = {}
-      vim.o.autoread = true
-
-      -- 示例快捷键配置
-      vim.keymap.set({ "n", "x" }, "<leader>oa", function()
-        require("opencode").ask("@this: ", { submit = true })
-      end, { desc = "Ask opencode" })
-      vim.keymap.set({ "n", "x" }, "<leader>os", function()
-        require("opencode").select()
-      end, { desc = "Execute opencode action" })
-      vim.keymap.set({ "n", "t" }, "<leader>ot", function()
-        require("opencode").toggle()
-      end, { desc = "Toggle opencode" })
-
-      -- Operator 模式（支持范围和 dot-repeat）
-      vim.keymap.set({ "n", "x" }, "go", function()
-        return require("opencode").operator("@this ")
-      end, { desc = "Add range to opencode", expr = true })
-      vim.keymap.set("n", "goo", function()
-        return require("opencode").operator("@this ") .. "_"
-      end, { desc = "Add line to opencode", expr = true })
-
-      -- 滚动 opencode 窗口
-      vim.keymap.set("n", "<S-C-u>", function()
-        require("opencode").command("session.half.page.up")
-      end, { desc = "Scroll opencode up" })
-      vim.keymap.set("n", "<S-C-d>", function()
-        require("opencode").command("session.half.page.down")
-      end, { desc = "Scroll opencode down" })
+    "Exafunction/windsurf.nvim",
+    opts = function()
+      LazyVim.cmp.actions.ai_accept = function()
+        if require("codeium.virtual_text").get_current_completion_item() then
+          LazyVim.create_undo()
+          vim.api.nvim_input(require("codeium.virtual_text").accept())
+          return true
+        end
+      end
     end,
   },
 }
