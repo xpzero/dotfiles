@@ -116,5 +116,6 @@ grep -c Molten ~/.local/share/nvim/rplugin.vim
 
 ## 已知边界
 
+- 图片显示在输出**浮窗**里（`<leader>mo`）：molten 的内联（virt）图片坐标计算在部分窗口布局下会偏出屏幕，已固定用 float 模式。`display(graph)` 这类富输出要等 cell 执行完成（Done）后才出现。
 - jupytext.nvim 解析 .ipynb 时假定 `metadata.kernelspec` 一定存在，无容错；遇到就按上面第 4 条修。
 - PyCharm 的变量面板、cell 级调试器、ipywidgets 在 Neovim 里没有等价物；探索性分析可留在 IDE，代码向工作流用本套配置。
