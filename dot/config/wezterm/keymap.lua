@@ -3,28 +3,47 @@ local act = wezterm.action
 
 local M = {}
 
--- 改进的vim检测函数
-local function is_vim(pane)
+-- 按键透传检测：vim 系编辑器和 zellij 内，按键交给内部程序处理
+local function is_passthrough(pane)
 	local process_info = pane:get_foreground_process_info()
 	if not process_info then
 		return false
 	end
 
 	local process_name = process_info.name
-	-- 检测常见的编辑器进程
-	return process_name == "nvim" or process_name == "vim" or process_name == "vi"
+	return process_name == "nvim"
+		or process_name == "vim"
+		or process_name == "vi"
+		or process_name == "zellij"
 end
 
 local function move_pane(key, mods, direction)
 	local event_name = "MovePane_" .. direction
 	wezterm.on(event_name, function(window, pane)
 		-- 使用改进的vim检测
-		if is_vim(pane) then
+		if is_passthrough(pane) then
 			-- 如果在vim/nvim中，发送键位给编辑器
 			window:perform_action(act.SendKey({ key = key, mods = mods }), pane)
 		else
 			-- 如果不在vim中，切换wezterm pane
 			window:perform_action(act.ActivatePaneDirection(direction), pane)
+		end
+	end)
+	return {
+		key = key,
+		mods = mods,
+		action = act.EmitEvent(event_name),
+	}
+end
+
+-- 切换 wezterm 标签页；zellij/vim 内透传按键（zellij 用 Alt+h/l 移动面板焦点）
+local function switch_tab(key, mods, relative)
+	local event_name = "SwitchTab_" .. key .. "_" .. relative
+	wezterm.on(event_name, function(window, pane)
+		if is_passthrough(pane) then
+			window:perform_action(act.SendKey({ key = key, mods = mods }), pane)
+		else
+			window:perform_action(act({ ActivateTabRelative = relative }), pane)
 		end
 	end)
 	return {
@@ -52,8 +71,8 @@ M.keys = {
 	-- move_pane("l", "CTRL", "Right"),
 
 	-- switch tab
-	{ key = "l", mods = "ALT", action = act({ ActivateTabRelative = 1 }) },
-	{ key = "h", mods = "ALT", action = act({ ActivateTabRelative = -1 }) },
+	switch_tab("l", "ALT", 1),
+	switch_tab("h", "ALT", -1),
 }
 
 M.setup = function(config)
