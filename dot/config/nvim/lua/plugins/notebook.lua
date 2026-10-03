@@ -29,6 +29,30 @@ function MoltenKernelForVenv(venv)
   return nil
 end
 
+-- 从当前文件向上找项目 venv（.venv/venv），并匹配已注册的内核
+-- 无需手动激活 venv，<leader>mi 即可自动选中项目内核
+function MoltenFindProjectKernel(buf)
+  local file = vim.api.nvim_buf_get_name(buf or 0)
+  if file == "" then
+    return nil
+  end
+  local matches = vim.fs.find({ ".venv", "venv" }, {
+    upward = true,
+    path = vim.fs.dirname(file),
+    limit = 3,
+    type = "directory",
+  })
+  for _, venv in ipairs(matches) do
+    if vim.uv.fs_stat(venv .. "/bin/python") then
+      local kernel = MoltenKernelForVenv(venv)
+      if kernel then
+        return kernel, venv
+      end
+    end
+  end
+  return nil
+end
+
 return {
   {
     "benlubas/molten-nvim",
@@ -47,13 +71,17 @@ return {
             vim.notify("Molten: 当前 buffer 已绑定内核 " .. vim.b.molten_attached_kernel)
             return
           end
-          local venv = os.getenv("VIRTUAL_ENV") or os.getenv("CONDA_PREFIX")
-          local kernel = MoltenKernelForVenv(venv)
+          local kernel = MoltenKernelForVenv(os.getenv("VIRTUAL_ENV") or os.getenv("CONDA_PREFIX"))
+          local source = kernel and "激活的 venv" or nil
+          if not kernel then
+            kernel, source = MoltenFindProjectKernel()
+            source = kernel and ("项目 venv " .. (source or "")) or nil
+          end
           if kernel then
-            vim.notify("Molten: 使用内核 " .. kernel .. "（来自 " .. venv .. "）")
+            vim.notify("Molten: 使用内核 " .. kernel .. "（" .. (source or "手动") .. "）")
             vim.cmd("MoltenInit " .. kernel)
           else
-            -- 未激活 venv 或没匹配到内核：退回手动选择
+            -- 未激活 venv 且项目里没有可匹配的 venv：退回手动选择
             vim.cmd("MoltenInit")
           end
         end,
