@@ -29,9 +29,88 @@ function MoltenKernelForVenv(venv)
   return nil
 end
 
--- 从当前文件向上找项目 venv（.venv/venv），并匹配已注册的内核
--- 无需手动激活 venv，<leader>mi 即可自动选中项目内核
-function MoltenFindProjectKernel(buf)
+-- Jupyter 用户内核目录（host python 的 data-dir + /kernels），所有项目的 kernelspec 都注册在这
+function MoltenUserKernelDir()
+  local cmd = vim.fn.shellescape(vim.g.python3_host_prog) .. " -m jupyter --data-dir"
+  local ok, out = pcall(vim.fn.system, cmd)
+  if not ok or vim.v.shell_error ~= 0 then
+    return nil
+  end
+  local dir = (out or ""):gsub("%s+$", "")
+  if dir == "" then
+    return nil
+  end
+  return dir .. "/kernels"
+end
+
+-- venv 里没有 ipykernel 内核起不来；uv 建的 venv 默认没有 pip，优先走 uv 装
+function MoltenEnsureIpykernel(py)
+  vim.fn.system({ py, "-c", "import ipykernel" })
+  if vim.v.shell_error == 0 then
+    return true
+  end
+  vim.notify("Molten: 正在为 " .. py .. " 安装 ipykernel …", vim.log.levels.INFO)
+  if vim.fn.executable("uv") == 1 then
+    vim.fn.system({ "uv", "pip", "install", "-q", "--python", py, "ipykernel" })
+    if vim.v.shell_error == 0 then
+      return true
+    end
+  end
+  vim.fn.system({ py, "-m", "pip", "install", "-q", "ipykernel" })
+  if vim.v.shell_error == 0 then
+    return true
+  end
+  vim.notify("Molten: 安装 ipykernel 失败，请手动安装后重试", vim.log.levels.ERROR)
+  return false
+end
+
+-- 给项目 venv 注册 kernelspec，返回内核名。直接写 kernel.json 而不用
+-- `ipykernel install --user`：后者的落盘位置取决于 venv 里 jupyter_core 的版本行为，
+-- 可能写进 host jupyter 搜不到的目录
+function MoltenRegisterVenvKernel(venv)
+  venv = venv:gsub("/$", "")
+  local py = venv .. "/bin/python"
+  if not MoltenEnsureIpykernel(py) then
+    return nil
+  end
+  local kernel_dir = MoltenUserKernelDir()
+  if not kernel_dir then
+    return nil
+  end
+  local project = vim.fs.basename(vim.fs.dirname(venv))
+  local name = project:gsub("[^%w%-_%.]", "-"):lower()
+  if name == "" then
+    name = "venv"
+  end
+  local dir = kernel_dir .. "/" .. name
+  -- 同名内核指向别的 venv 时加路径哈希后缀，避免覆盖别的项目
+  local f = io.open(dir .. "/kernel.json", "r")
+  if f then
+    local content = f:read("*a")
+    f:close()
+    local ok, existing = pcall(vim.json.decode, content)
+    local existing_py = ok and existing and existing.argv and existing.argv[1] or nil
+    if existing_py and existing_py ~= py then
+      name = name .. "-" .. vim.fn.sha256(venv):sub(1, 6)
+      dir = kernel_dir .. "/" .. name
+    end
+  end
+  local spec = {
+    argv = { py, "-Xfrozen_modules=off", "-m", "ipykernel_launcher", "-f", "{connection_file}" },
+    display_name = "Python (" .. project .. ")",
+    language = "python",
+    interrupt_mode = "signal",
+  }
+  vim.fn.mkdir(dir, "p")
+  if vim.fn.writefile({ vim.json.encode(spec) }, dir .. "/kernel.json") == -1 then
+    vim.notify("Molten: 写入 kernelspec 失败: " .. dir, vim.log.levels.ERROR)
+    return nil
+  end
+  return name
+end
+
+-- 从当前文件向上找项目 venv（.venv/venv），无需手动激活 venv
+function MoltenFindProjectVenv(buf)
   local file = vim.api.nvim_buf_get_name(buf or 0)
   if file == "" then
     return nil
@@ -44,10 +123,7 @@ function MoltenFindProjectKernel(buf)
   })
   for _, venv in ipairs(matches) do
     if vim.uv.fs_stat(venv .. "/bin/python") then
-      local kernel = MoltenKernelForVenv(venv)
-      if kernel then
-        return kernel, venv
-      end
+      return venv
     end
   end
   return nil
@@ -74,19 +150,22 @@ return {
             vim.notify("Molten: 当前 buffer 已绑定内核 " .. vim.b.molten_attached_kernel)
             return
           end
-          local kernel = MoltenKernelForVenv(os.getenv("VIRTUAL_ENV") or os.getenv("CONDA_PREFIX"))
-          local source = kernel and "激活的 venv" or nil
-          if not kernel then
-            kernel, source = MoltenFindProjectKernel()
-            source = kernel and ("项目 venv " .. (source or "")) or nil
+          local venv = os.getenv("VIRTUAL_ENV") or os.getenv("CONDA_PREFIX") or MoltenFindProjectVenv()
+          if venv then
+            local kernel = MoltenKernelForVenv(venv)
+            local source = "已注册内核"
+            if not kernel then
+              kernel = MoltenRegisterVenvKernel(venv)
+              source = "首次自动注册内核"
+            end
+            if kernel then
+              vim.notify("Molten: 使用内核 " .. kernel .. "（" .. source .. "，" .. venv .. "）")
+              vim.cmd("MoltenInit " .. kernel)
+              return
+            end
           end
-          if kernel then
-            vim.notify("Molten: 使用内核 " .. kernel .. "（" .. (source or "手动") .. "）")
-            vim.cmd("MoltenInit " .. kernel)
-          else
-            -- 未激活 venv 且项目里没有可匹配的 venv：退回手动选择
-            vim.cmd("MoltenInit")
-          end
+          -- 没有 venv 或注册失败：退回手动选择
+          vim.cmd("MoltenInit")
         end,
         desc = "Notebook: Initialize Kernel (auto venv match)",
         ft = "python",

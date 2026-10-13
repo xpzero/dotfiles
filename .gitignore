@@ -12,3 +12,6 @@ dot/config/browser-harness/
 dot/config/github-copilot/
 dot/config/herdr/*
 !dot/config/herdr/config.toml
+
+# 隐私数据不入库
+dot/config/fish/secrets.fish

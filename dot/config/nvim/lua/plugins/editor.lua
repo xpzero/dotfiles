@@ -20,36 +20,71 @@ return {
         },
         commands = {
           copy_selector = function(state)
-            local node = state.tree:get_node()
-            local filepath = node:get_id()
-            local filename = node.name
-            local modify = vim.fn.fnamemodify
+            -- 整体 pcall：任何一步出错都转成可读通知，不再抛 E5108 堆栈
+            local ok, err = pcall(function()
+              -- 大目录扫描渲染完成前 state.tree 为 nil，此时触发会直接报 E5108
+              if not state.tree then
+                vim.notify("neo-tree: 文件树尚未加载完成，稍后再试", vim.log.levels.WARN)
+                return
+              end
+              local node = state.tree:get_node()
+              if not node then
+                return
+              end
+              local filepath = node:get_id()
+              local filename = node.name or filepath
+              local modify = vim.fn.fnamemodify
 
-            local results = {
-              filepath,
-              modify(filepath, ":."),
-              modify(filepath, ":~"),
-              filename,
-              modify(filename, ":r"),
-              modify(filename, ":e"),
-            }
+              local results = {
+                filepath,
+                modify(filepath, ":."),
+                modify(filepath, ":~"),
+                filename,
+                modify(filename, ":r"),
+                modify(filename, ":e"),
+              }
+              local labels = {
+                "Absolute path",
+                "Path relative to CWD",
+                "Path relative to HOME",
+                "Filename",
+                "Filename without extension",
+                "Extension of the filename",
+              }
+              local items = {}
+              for i, label in ipairs(labels) do
+                items[i] = label .. ": " .. tostring(results[i])
+              end
 
-            vim.ui.select({
-              "Absolute path: " .. results[1],
-              "Path relative to CWD: " .. results[2],
-              "Path relative to HOME: " .. results[3],
-              "Filename: " .. results[4],
-              "Filename without extension: " .. results[5],
-              "Extension of the filename: " .. results[6],
-            }, { prompt = "Choose to copy to clipboard:" }, function(choice)
-              if choice then
-                local result = vim.split(choice, ": ")[2]
+              local function on_choice(_, idx)
+                -- 取消选择（Esc / Ctrl-C）时 idx 为 nil，静默退出
+                if not idx then
+                  return
+                end
+                local result = results[idx]
+                -- 没有扩展名的文件，":e" 结果为空串，复制无意义
+                if not result or result == "" then
+                  vim.notify("该项没有可复制的值（如文件无扩展名）", vim.log.levels.WARN)
+                  return
+                end
                 -- 将获取到的路径地址放到剪贴板上
                 vim.fn.setreg("+", result)
                 vim.notify("Copied: " .. result)
-                return
+              end
+
+              -- 用 snacks 的选择器替代 vim.ui.select（已被 fzf-lua 接管为终端浮窗）：
+              -- snacks 是纯 Lua 浮窗，取消时走干净的 on_close 回调，
+              -- Ctrl-C 中断 fzf 终端进程导致的报错在这里不存在
+              local snacks_ok, snacks_picker = pcall(require, "snacks.picker")
+              if snacks_ok and snacks_picker.select then
+                snacks_picker.select(items, { prompt = "复制路径到剪贴板" }, on_choice)
+              else
+                vim.ui.select(items, { prompt = "Choose to copy to clipboard:" }, on_choice)
               end
             end)
+            if not ok then
+              vim.notify("copy_selector 出错: " .. tostring(err), vim.log.levels.ERROR)
+            end
           end,
         },
         window = {

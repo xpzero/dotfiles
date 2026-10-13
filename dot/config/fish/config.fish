@@ -1,3 +1,7 @@
+# The following lines were added by Docker Desktop to add commands to your PATH.
+export PATH="$PATH:/Users/xupeishan/.docker/bin"
+# End of Docker Desktop section.
+
 set -gx EDITOR nvim
 set -gx PATH $PATH /opt/homebrew/bin
 # 在文件末尾添加以下镜像配置（以清华源为例）
@@ -75,3 +79,6 @@ fish_add_path -g "$HOME/.kimi-code/bin"
 
 # OpenClaw Completion
 test -f "$HOME/.openclaw/completions/openclaw.fish"; and source "$HOME/.openclaw/completions/openclaw.fish"
+
+# CodeCompanion: 智谱 GLM Coding Plan key 放在 secrets.fish（不入库，见 .gitignore）
+test -f "$HOME/.config/fish/secrets.fish"; and source "$HOME/.config/fish/secrets.fish"

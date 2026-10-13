@@ -28,7 +28,7 @@ M.opts = {
         env = {
           api_key = env("QH_API_KEY"),
         },
-        url = "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+        url = "https://api.z.ai/api/coding/paas/v4/chat/completions",
         schema = {
           model = {
             default = "glm-4.5",
@@ -59,6 +59,7 @@ M.opts = {
     inline = { adapter = "qinghua" },
   },
   prompt_library = {
+
     auto_greet = {
       strategy = "chat",
       description = "Write documentation for me",
