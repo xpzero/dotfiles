@@ -70,6 +70,11 @@ M.keys = {
 	-- move_pane("k", "CTRL", "Up"),
 	-- move_pane("l", "CTRL", "Right"),
 
+	-- 禁用默认的 ALT+Enter (ToggleFullScreen)，让按键透传给终端
+	{ key = "Enter", mods = "ALT", action = act.DisableDefaultAssignment },
+	-- 全屏切换改到 Option+Command+Enter
+	{ key = "Enter", mods = "OPT|CMD", action = act.ToggleFullScreen },
+
 	-- switch tab
 	switch_tab("l", "ALT", 1),
 	switch_tab("h", "ALT", -1),
