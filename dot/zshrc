@@ -36,7 +36,7 @@ if [[ $- == *i* ]]; then
         export ZSH="$DOTFILES_ROOT/oh-my-zsh"
         export ZSH_CUSTOM="$DOTFILES_ROOT/zsh-custom"
         ZSH_THEME="powerlevel10k/powerlevel10k"
-        plugins=(git)
+        plugins=(git fzf z sudo extract colored-man-pages zsh-autosuggestions zsh-syntax-highlighting)
         source "$ZSH/oh-my-zsh.sh"
         # p10k 配置向导（p10k configure）生成的文件
         [[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
