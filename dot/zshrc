@@ -1,3 +1,10 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 # Basic Zsh configuration
 export PATH="$HOME/.opencode/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
@@ -10,18 +17,31 @@ export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 
 # Homebrew mirrors
-export HOMEBREW_API_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
-export HOMEBREW_BOTTLE_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
-export HOMEBREW_BREW_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
-export HOMEBREW_CORE_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
-export HOMEBREW_PIP_INDEX_URL="pypi.tuna.tsinghua.edu.cn"
+export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+export HOMEBREW_PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
 export HOMEBREW_NO_AUTO_UPDATE=1
 
 # Interactive shell setup
 if [[ $- == *i* ]]; then
-    # Starship prompt
-    eval "$(starship init zsh)"
-    
+    # Oh My Zsh + Powerlevel10k（子模块安装于 dotfiles 仓库内，bootstrap 递归拉取）
+    # .zshrc 是指向仓库内 dot/zshrc 的软链，据此解析仓库根目录
+    _zshrc_link=$(readlink "$HOME/.zshrc" 2>/dev/null)
+    DOTFILES_ROOT="${_zshrc_link:h:h}"
+    [[ -d "$DOTFILES_ROOT/oh-my-zsh" ]] || DOTFILES_ROOT="$HOME/Documents/dotfiles"
+
+    if [[ -d "$DOTFILES_ROOT/oh-my-zsh" ]]; then
+        export ZSH="$DOTFILES_ROOT/oh-my-zsh"
+        export ZSH_CUSTOM="$DOTFILES_ROOT/zsh-custom"
+        ZSH_THEME="powerlevel10k/powerlevel10k"
+        plugins=(git)
+        source "$ZSH/oh-my-zsh.sh"
+        # p10k 配置向导（p10k configure）生成的文件
+        [[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
+    fi
+
     # fnm (Node version manager)
     eval "$(fnm env --use-on-cd)"
 fi
@@ -30,38 +50,7 @@ fi
 alias pn="pnpm"
 alias pnx="pnpx"
 alias n="nvim"
-
-# Git aliases
-alias ga='git add'
-alias gaa='git add --all'
-alias gb='git branch'
-alias gba='git branch --all'
-alias gbd='git branch --delete'
-alias gbD='git branch --delete --force'
-alias gco='git checkout'
-alias gcb='git checkout -b'
-alias gcm='git checkout $(git_main_branch)'
-alias gcl='git clone --recurse-submodules'
-alias gcmsg='git commit --message'
-alias gcp='git cherry-pick'
-alias gd='git diff'
-alias gdca='git diff --cached'
-alias glg='git log --stat'
-alias glo='git log --oneline --decorate'
-alias glog='git log --oneline --decorate --graph'
-alias gloga='git log --oneline --decorate --graph --all'
-alias gmom='git merge origin/$(git_main_branch)'
-alias gl='git pull'
-alias gp='git push'
-alias gpf='git push --force'
-alias grhh='git reset --hard'
-alias grs='git restore'
-alias gsta='git stash save'
-alias gstc='git stash clear'
-alias gstd='git stash drop'
-alias gstl='git stash list'
-alias gstp='git stash pop'
-alias gst='git status'
+# git 别名由 oh-my-zsh 的 git 插件提供（ga/gco/gp/gst 等），不再手写
 
 # Zellij aliases
 alias za='zellij attach'
@@ -689,3 +678,6 @@ req-relink() {
 
 # Source local zshrc if exists
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

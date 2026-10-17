@@ -20,14 +20,14 @@ set_brew_mirrors() {
   info "正在配置 Homebrew 国内镜像源..."
 
   # 1. 设置环境变量，加速 API 和 Bottles 下载
-  export HOMEBREW_API_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
-  export HOMEBREW_BREW_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
-  export HOMEBREW_CORE_GIT_REMOTE="mirrors.tuna.tsinghua.edu.cn"
-  export HOMEBREW_BOTTLE_DOMAIN="mirrors.tuna.tsinghua.edu.cn"
+  export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+  export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+  export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+  export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
 
   # 2. 如果已经安装过，同步重置远程仓库地址 (可选)
   if command -v brew &>/dev/null; then
-    git -C "$(brew --repo)" remote set-url origin mirrors.tuna.tsinghua.edu.cn
+    git -C "$(brew --repo)" remote set-url origin "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
   fi
 }
 
@@ -60,7 +60,7 @@ install_brew() {
 # 2. 安装软件
 setup_software() {
   info "正在通过 Homebrew 安装软件..."
-  local apps=(neovim wezterm fish starship fnm git fzf ripgrep herdr uv python3 imagemagick)
+  local apps=(neovim wezterm fnm git fzf ripgrep herdr uv python3 imagemagick)
   for app in "${apps[@]}"; do
     if ! brew list "$app" &>/dev/null; then
       brew install "$app"
@@ -200,31 +200,25 @@ initialize_repo() {
   fi
 }
 
-# 7. 设置 fish 为默认 shell
-setup_fish_as_default() {
-  local fish_path
-  fish_path=$(which fish)
-
-  # 1. 检查是否已经是默认 shell
-  if [[ "$SHELL" == "$fish_path" ]]; then
-    info "Fish 已经是默认 shell。"
+# 7. 设置 zsh 为默认 shell（/bin/zsh 是系统自带，无需写入 /etc/shells）
+setup_zsh_as_default() {
+  if [[ "$SHELL" == "/bin/zsh" ]]; then
+    info "zsh 已经是默认 shell。"
     return
   fi
 
-  # 2. 将 fish 路径添加到 /etc/shells (如果不存在)
-  # 这步很重要，否则 chsh 会因为 "non-standard shell" 报错
-  if ! grep -q "$fish_path" /etc/shells; then
-    info "将 $fish_path 添加到 /etc/shells..."
-    echo "$fish_path" | sudo tee -a /etc/shells
-  fi
-
-  # 3. 切换默认 shell
-  info "正在切换默认 shell 到 fish..."
-  if chsh -s "$fish_path"; then
-    success "默认 shell 已切换为 fish。请重启终端或重新登录以生效。"
+  info "正在切换默认 shell 到 zsh..."
+  if chsh -s /bin/zsh; then
+    success "默认 shell 已切换为 zsh。请重启终端或重新登录以生效。"
   else
-    error "切换默认 shell 失败，请尝试手动执行: chsh -s $fish_path"
+    error "切换默认 shell 失败，请尝试手动执行: chsh -s /bin/zsh"
   fi
+}
+
+# 8. 初始化 git 子模块（oh-my-zsh、powerlevel10k 等）
+setup_submodules() {
+  info "正在初始化 git 子模块（oh-my-zsh / powerlevel10k）..."
+  git submodule update --init --recursive
 }
 
 # --- 执行流程 ---
@@ -241,7 +235,8 @@ main() {
   fi
 
   install_dotfiles
-  setup_fish_as_default
+  setup_submodules
+  setup_zsh_as_default
 
   success "所有配置已完成！"
 }
